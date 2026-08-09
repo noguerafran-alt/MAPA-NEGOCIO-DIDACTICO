@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: rutas-aereas-argentina
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers 1 --threads 2 --timeout 300
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: DATABASE_URL
+        sync: false
+      - key: ADMIN_PASSWORD
+        generateValue: true
+      - key: MAP_PASSWORD
+        generateValue: true
+      - key: FUEL_PASSWORD
+        sync: false  # se administra a mano en el dashboard de Render, no la pisa el blueprint
+      - key: SECRET_KEY
+        generateValue: true

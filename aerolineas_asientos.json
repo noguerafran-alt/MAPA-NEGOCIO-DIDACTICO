@@ -1,0 +1,72 @@
+{
+  "_meta": {
+    "descripcion": "Asientos totales por aerolinea para cada modelo generico de avion del catalogo (tabla Aircraft). Se usa como override opcional en el panel de detalle de ruta: si el usuario elige una aerolinea especifica, se usa este valor en vez de asientos_default del avion generico.",
+    "fuente_principal": "seatmaps.com (2026)",
+    "nota_variantes": "Cuando una aerolinea tiene varias configuraciones de cabina para el mismo modelo, se eligio la variante principal/mas comun. Ver campo 'nota' de cada entrada para el sub-tipo real y la fuente si no es seatmaps.com."
+  },
+
+  "Boeing 777": {
+    "American Airlines":  { "asientos": 273, "nota": "777-200ER, config principal" },
+    "British Airways":    { "asientos": 332, "nota": "777-200ER V.3" }
+  },
+
+  "Boeing 777-300ER": {
+    "Air France":         { "asientos": 296, "nota": "4 clases; la flota va de 296 a 472 segun config" },
+    "American Airlines":  { "asientos": 304, "nota": "V.1, config mas comun" },
+    "British Airways":    { "asientos": 254, "nota": "unica config, all Club Suite" },
+    "China Eastern":      { "asientos": 316 },
+    "KLM":                { "asientos": 381 },
+    "LATAM":              { "asientos": 410 },
+    "Swiss":              { "asientos": 320 },
+    "Turkish Airlines":   { "asientos": 349, "nota": "V.2, ~30 de 33 aviones" },
+    "United Airlines":    { "asientos": 350 }
+  },
+
+  "Boeing 787": {
+    "Air Canada":         { "asientos": 298, "nota": "787-9" },
+    "Air Europa":         { "asientos": 339, "nota": "787-9, ruta principal MAD-EZE" },
+    "Avianca":            { "asientos": 291, "nota": "787-8" },
+    "Ethiopian Airlines": { "asientos": 315, "nota": "787-9" },
+    "LATAM":              { "asientos": 304, "nota": "787-9" }
+  },
+
+  "Airbus A350-900": {
+    "China Eastern":      { "asientos": 288 },
+    "Iberia":             { "asientos": 348, "nota": "V.1, config principal MAD-EZE" },
+    "ITA Airways":        { "asientos": 319, "nota": "verificar contra sitio oficial de ITA, hay fuentes con 291" },
+    "Lufthansa":          { "asientos": 293, "nota": "V.1 estandar, mayoria de la flota" }
+  },
+
+  "Airbus A330": {
+    "Aerolineas Argentinas": { "asientos": 272, "nota": "A330-200 V.2, coincide con sitio oficial (24J/248Y)" },
+    "BOA":                   { "asientos": 275, "nota": "A330-200" },
+    "China Eastern":         { "asientos": 300, "nota": "A330-300 V.1" },
+    "Delta":                 { "asientos": 281, "nota": "A330-900neo" },
+    "Iberia":                { "asientos": 288, "nota": "A330-200 V.1" },
+    "ITA Airways":           { "asientos": 291, "nota": "A330-900neo" },
+    "LEVEL":                 { "asientos": 311, "nota": "A330-200 V.1" },
+    "Swiss":                 { "asientos": 236, "nota": "A330-300" }
+  },
+
+  "Airbus A320": {
+    "JetSmart":     { "asientos": 186 },
+    "LATAM":        { "asientos": 174, "nota": "V.2" },
+    "SKY Airline":  { "asientos": 186, "nota": "A320neo" }
+  },
+
+  "Airbus A321": {
+    "JetSmart":     { "asientos": 240, "nota": "A321neo" },
+    "SKY Airline":  { "asientos": 238, "nota": "A321neo" }
+  },
+
+  "Boeing 737": {
+    "Aerolineas Argentinas": { "asientos": 170, "nota": "737-800 / 737 MAX 8" },
+    "Andes":                 { "asientos": 189, "nota": "737-800, no esta en seatmaps.com, fuente prensa aeronautica" },
+    "Arajet":                { "asientos": 185, "nota": "737 MAX 8" },
+    "American Airlines":     { "asientos": 160, "nota": "737-800" },
+    "BOA":                   { "asientos": 168, "nota": "737-800" },
+    "COPA":                  { "asientos": 160, "nota": "737-800 V.2" },
+    "Flybondi":              { "asientos": 189, "nota": "737-800" },
+    "GOL":                   { "asientos": 186, "nota": "737-800" }
+  }
+}

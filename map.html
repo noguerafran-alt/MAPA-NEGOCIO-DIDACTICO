@@ -1,0 +1,2082 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Rutas Aéreas Argentinas — Vuelos, Pasajeros y Ocupación</title>
+<script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+<style>
+  html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #0b1020; overflow: hidden; }
+  * { box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; }
+  #map { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; }
+
+  #panel {
+    position: fixed; top: 14px; left: 14px; z-index: 10;
+    background: rgba(16,22,46,0.88); backdrop-filter: blur(6px);
+    border: 1px solid #2a3358; border-radius: 12px;
+    padding: 14px 18px; color: #eee; max-width: 92vw;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  #panel h1 { margin: 0 0 2px 0; font-size: 17px; }
+  #subtitle { color: #9aa4c7; font-size: 11px; margin-bottom: 10px; }
+  #panel-header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  #logo { height: 40px; border-radius: 4px; background: #fff; padding: 3px; }
+  #controls { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  .ctrl-group { display: flex; align-items: center; gap: 6px; }
+  label { font-size: 12px; color: #cdd4ee; }
+  select { font-size: 13px; padding: 4px 6px; border-radius: 6px; border: 1px solid #3a4470; background: #1a2144; color: #fff; }
+  .toggle-btn { padding: 5px 12px; border-radius: 20px; border: 1px solid #3a4470; background: #1a2144; color: #cdd4ee; cursor: pointer; font-size: 12px; }
+  .toggle-btn.active { background: #4c7cf0; color: #fff; border-color: #4c7cf0; }
+  .toggle-btn.metric.active { background: #e0663f; border-color: #e0663f; }
+  .divider { width: 1px; height: 22px; background: #2a3358; }
+
+  .year-dropdown {
+    display: none; position: absolute; top: 32px; left: 0; z-index: 20;
+    background: rgba(16,22,46,0.97); backdrop-filter: blur(6px);
+    border: 1px solid #3a4470; border-radius: 8px;
+    padding: 6px; max-height: 260px; overflow-y: auto;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    min-width: 110px;
+  }
+  .year-dropdown.open { display: block; }
+  .year-dropdown .year-item {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 6px; border-radius: 5px; cursor: pointer; font-size: 12.5px; color: #cdd4ee;
+  }
+  .year-dropdown .year-item:hover { background: rgba(76,124,240,0.15); }
+  .year-dropdown .year-item input { flex-shrink: 0; cursor: pointer; }
+  .year-dropdown .year-actions {
+    display: flex; gap: 6px; padding: 4px 6px 6px 6px; margin-bottom: 4px;
+    border-bottom: 1px solid #2a3358;
+  }
+
+  #stats {
+    position: fixed; bottom: 14px; left: 14px; z-index: 10;
+    background: rgba(16,22,46,0.88); backdrop-filter: blur(6px);
+    border: 1px solid #2a3358; border-radius: 10px;
+    padding: 8px 14px; color: #9aa4c7; font-size: 12px;
+  }
+
+  #fuel-diag-warning {
+    position: fixed; bottom: 52px; left: 14px; z-index: 10; max-width: 480px;
+    background: rgba(59,40,10,0.92); backdrop-filter: blur(6px);
+    border: 1px solid #6b551f; border-radius: 10px;
+    padding: 9px 14px; color: #e3c98a; font-size: 12px; line-height: 1.5;
+    display: none; cursor: pointer;
+  }
+  #fuel-diag-warning:hover { background: rgba(74,52,15,0.95); }
+
+  #route-panel {
+    position: fixed; top: 78px; right: 14px; z-index: 10;
+    background: rgba(16,22,46,0.92); backdrop-filter: blur(6px);
+    border: 1px solid #2a3358; border-radius: 12px;
+    padding: 12px 14px; color: #eee; width: 260px;
+    max-height: 74vh; display: flex; flex-direction: column;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  #route-panel-header { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: bold; margin-bottom: 8px; }
+  .mini-btn { font-size: 10px; padding: 3px 8px; border-radius: 12px; border: 1px solid #3a4470; background: #1a2144; color: #cdd4ee; cursor: pointer; margin-left: 4px; }
+  #routeSearch { font-size: 12px; padding: 5px 8px; border-radius: 6px; border: 1px solid #3a4470; background: #1a2144; color: #fff; margin-bottom: 8px; width: 100%; }
+  #route-list { overflow-y: auto; flex: 1; font-size: 12px; }
+  .route-item { display: flex; align-items: center; gap: 6px; padding: 3px 2px; cursor: pointer; }
+  .route-item:hover { background: rgba(76,124,240,0.15); border-radius: 4px; }
+  .route-item input { flex-shrink: 0; }
+  .route-item .swatch { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .route-item label { font-size: 11.5px; color: #cdd4ee; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #route-list::-webkit-scrollbar { width: 6px; }
+  #route-list::-webkit-scrollbar-thumb { background: #3a4470; border-radius: 3px; }
+
+  #route-detail-panel {
+    position: fixed; top: 170px; left: 14px; z-index: 12;
+    background: rgba(16,22,46,0.94); backdrop-filter: blur(6px);
+    border: 1px solid #4c7cf0; border-radius: 12px;
+    padding: 14px 16px; color: #eee; width: 280px;
+    max-height: calc(100vh - 190px); overflow-y: auto;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  }
+  #route-detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  #route-detail-title { font-size: 14px; font-weight: bold; }
+  #route-detail-close { background: none; border: none; color: #9aa4c7; font-size: 14px; cursor: pointer; padding: 0; margin: 0; }
+  #route-detail-close:hover { color: #fff; }
+  .rd-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: 12.5px; gap: 10px; }
+  .rd-label { color: #9aa4c7; flex-shrink: 0; }
+  .rd-value { color: #eee; text-align: right; }
+  .rd-divider { height: 1px; background: #2a3358; margin: 8px 0; }
+  #rd-avion-select, #rd-aerolinea-select {
+    font-size: 12.5px; padding: 4px 6px; border-radius: 6px; border: 1px solid #3a4470;
+    background: #0b1020; color: #fff; max-width: 170px;
+  }
+  #rd-aerolinea-select:disabled { opacity: 0.5; cursor: not-allowed; }
+  #rd-hint { font-size: 10.5px; color: #6f7ba8; margin-top: 10px; line-height: 1.4; }
+
+  #fuel-sales-overlay {
+    display: none; position: fixed; inset: 0; z-index: 20;
+    background: rgba(0,0,0,0.55); align-items: center; justify-content: center;
+  }
+  #fuel-sales-panel {
+    background: rgba(16,22,46,0.97); border: 1px solid #4c7cf0; border-radius: 14px;
+    padding: 18px 20px; color: #eee; width: min(980px, 94vw); max-height: 82vh;
+    display: flex; flex-direction: column; box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+  }
+  #fuel-sales-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  #fuel-sales-title { font-size: 16px; font-weight: bold; }
+  #fuel-sales-close { background: none; border: none; color: #9aa4c7; font-size: 16px; cursor: pointer; padding: 0; }
+  #fuel-sales-close:hover { color: #fff; }
+  #fuel-sales-controls { display: flex; align-items: center; gap: 10px; margin: 10px 0 14px; font-size: 12.5px; color: #9aa4c7; flex-wrap: wrap; }
+  #fuel-sales-airline-filter { font-size: 12.5px; padding: 5px 8px; border-radius: 6px; border: 1px solid #3a4470; background: #0b1020; color: #fff; }
+  #fuel-sales-summary { margin-left: auto; color: #cdd4ee; }
+  #fuel-sales-table-wrap { overflow-y: auto; overflow-x: hidden; flex: 1; }
+  #fuel-sales-table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
+  #fuel-sales-table col.col-vuelo { width: 8%; }
+  #fuel-sales-table col.col-llaa { width: 18%; }
+  #fuel-sales-table col.col-destino { width: 7%; }
+  #fuel-sales-table col.col-num { width: 11.17%; }
+  #fuel-sales-table th {
+    position: sticky; top: 0; background: #151b38; color: #9aa4c7;
+    text-align: right; padding: 6px 8px; font-weight: normal; border-bottom: 1px solid #2a3358;
+    white-space: normal; line-height: 1.25; vertical-align: bottom; cursor: pointer; user-select: none;
+    font-size: 11px;
+  }
+  #fuel-sales-table th:hover { color: #fff; }
+  #fuel-sales-table th.sorted { color: #4c7cf0; }
+  #fuel-sales-table th .sort-arrow { font-size: 9px; margin-left: 3px; opacity: 0.8; }
+  #fuel-sales-table th:first-child, #fuel-sales-table th:nth-child(2), #fuel-sales-table th:nth-child(3) { text-align: left; }
+  #fuel-sales-table td {
+    padding: 5px 8px; text-align: right; border-bottom: 1px solid #1c2344; color: #cdd4ee;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  #fuel-sales-table td:first-child, #fuel-sales-table td:nth-child(2), #fuel-sales-table td:nth-child(3) { text-align: left; }
+  #fuel-sales-table tbody tr:hover { background: rgba(76,124,240,0.08); }
+  #fuel-sales-table td.fuel-locked-cell { cursor: pointer; color: #6a7399; }
+  #fuel-sales-table td.fuel-locked-cell:hover { color: #4c7cf0; }
+  #fuel-sales-empty { text-align: center; color: #6f7ba8; padding: 30px 0; font-size: 12.5px; }
+
+  #fuel-sales-title-wrap { position: relative; display: inline-block; }
+  #fuel-sales-title { font-size: 16px; font-weight: bold; cursor: help; border-bottom: 1px dashed #4c7cf0; }
+  #fuel-sales-title-tooltip {
+    display: none; position: absolute; top: 100%; left: 0; margin-top: 8px; z-index: 30;
+    background: rgba(10,14,32,0.98); border: 1px solid #4c7cf0; border-radius: 10px;
+    padding: 12px 14px; width: 260px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    font-size: 12px; font-weight: normal; white-space: normal;
+  }
+  #airport-item-tooltip {
+    display: none; position: fixed; z-index: 40;
+    background: rgba(10,14,32,0.98); border: 1px solid #4c7cf0; border-radius: 10px;
+    padding: 12px 14px; width: 240px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    font-size: 12px; font-weight: normal; white-space: normal; color: #eee;
+  }
+  #airport-item-tooltip.show { display: block; }
+
+  #airport-choice-menu {
+    display: none; position: fixed; z-index: 45;
+    background: rgba(16,22,46,0.98); border: 1px solid #4c7cf0; border-radius: 10px;
+    padding: 8px; width: 190px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    flex-direction: column; gap: 4px;
+  }
+  #airport-choice-menu.show { display: flex; }
+  .acm-title {
+    font-size: 12.5px; font-weight: bold; color: #eee; padding: 4px 6px 6px;
+    border-bottom: 1px solid #2a3358; margin-bottom: 2px;
+  }
+  .acm-btn {
+    background: #1a2144; border: 1px solid #3a4470; color: #cdd4ee;
+    border-radius: 6px; padding: 7px 10px; font-size: 12.5px; text-align: left;
+    cursor: pointer; margin: 0;
+  }
+  .acm-btn:hover { background: #4c7cf0; border-color: #4c7cf0; color: #fff; }
+
+  #fuel-unlock-overlay {
+    display: none; position: fixed; inset: 0; z-index: 50;
+    background: rgba(0,0,0,0.6); align-items: center; justify-content: center;
+  }
+  #fuel-unlock-overlay.show { display: flex; }
+  #fuel-unlock-modal {
+    background: rgba(16,22,46,0.98); border: 1px solid #4c7cf0; border-radius: 12px;
+    padding: 20px 22px; width: min(320px, 90vw); box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+  }
+  #fuel-unlock-title { font-size: 14px; font-weight: bold; color: #eee; margin-bottom: 14px; }
+  #fuel-unlock-password {
+    width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 6px;
+    border: 1px solid #3a4470; background: #0b1020; color: #fff; font-size: 13px; margin-bottom: 8px;
+  }
+  #fuel-unlock-error { color: #e0524f; font-size: 12px; min-height: 16px; margin-bottom: 8px; }
+  #fuel-unlock-submit {
+    width: 100%; background: #4c7cf0; border: none; color: #fff; border-radius: 6px;
+    padding: 8px 10px; font-size: 13px; cursor: pointer; margin: 0;
+  }
+  #fuel-unlock-submit:hover { background: #3a67d8; }
+
+  #fuel-sales-title-wrap:hover #fuel-sales-title-tooltip { display: block; }
+  .fst-row { display: flex; justify-content: space-between; padding: 2px 0; gap: 10px; }
+  .fst-label { color: #9aa4c7; }
+  .fst-value { color: #eee; text-align: right; }
+  .fuel-locked-row { cursor: pointer; }
+  .fuel-locked-row:hover .fst-value { color: #4c7cf0; }
+
+  /* Plotly modebar (zoom/pan/reset tools): bigger, always visible, white and bold */
+  .modebar-container {
+    position: fixed !important;
+    top: 8px !important;
+    right: 14px !important;
+    z-index: 15 !important;
+    transform: scale(1.275);
+    transform-origin: top right;
+  }
+  .modebar-group { background: rgba(16,22,46,0.85) !important; border-radius: 8px; }
+  .modebar-btn svg, .modebar-btn path {
+    fill: #ffffff !important;
+    filter: drop-shadow(0 0 0.6px #ffffff) drop-shadow(0 0 0.6px #ffffff);
+  }
+  .modebar-btn.active svg, .modebar-btn.active path,
+  .modebar-btn:hover svg, .modebar-btn:hover path {
+    fill: #4c7cf0 !important;
+  }
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div id="panel">
+  <div id="panel-header">
+    <img id="logo" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKoAAABcCAIAAABx37nRAAAQAElEQVR4AexdC1xUVf7nCjiAoICgCCgooAgiqPk2Mcv12aZmaVaaaWnllrbZQ01p13z8rZXSf9tqbdSWPXSV2jRbX+BbEQHfAiIgCCLyfr9mv8O5cxlm7tw5d+YOCHP5fD3+7jm/8zuP7++e152500Ep/1lwD3Swkv8suAdk+i2YfCsrmX6ZfovuAYtuvHz3y/RbdA9YdOPlu1+m38rKyqI7wXIbL9/9lss9Wi7Tj06wXMj0Wy73aLlMPzrBciHTb7nco+Xi6E/MLotJLRIFlEEPUZahnF5QpWm8qLIOkRIC7dW0Ty/PjroKMMtiWwD0tdLVFEc/8i/be/ORbUn0oO9B0EZvFpov7LwBvlElTUz/4gqSpMKgzfHgL2xz/PQvr0QcSI++lK9ZVjuQtekXblKYl2PM0tBQL0dhNc3UyNgszUsBOTI2WyBVK+mNcK/EFUNQH814Z3ubZeO8NGMkkZOyy36+lP/BgYwZX16BK9A49JQgV0CS0s1qRBz9qAq6WJQHfH3urtYQDSO6wK2PLtaN542ZP6x75Ax/1EQ31dfVTjdSwhi4wqDN8RgJhG0O9nYEhHUehFTR9KPS6Hd4gA91RxvsLNiMOJCBkAbgPmpuoD5Nc9NPysVI4PuXs3BZcqkbujnaArrxD1qMMfSjDfCA6IXBXexsIBsEBgCBnkJ2zKmxqUUQDALzDu57g2otoJBRUIUVRtS5XN6yGCsrwOqB/zOSfrQL827Us/0g0IB3mUYyYvn2wnc3iCwcwtvgc/A8YbWWTBW1XmnJilGWZTz9KGB6iNvaST4QDAL3SsSBdF41eEZxVR1vklZk9KJgacf2LTP8ji4N5YBLrRINXmIpQLMSFLYT7tf5g8m+YoHOFzZLk2oS/SggYpLvEyFuEAzik9hs3SkAwz7lig/cjPN3NliKKAUMYLDJYVm491dz+2GMEWVE3/hPb2RcgMuaiT5isXdhcMH6UfsXD6AvSFfTVPphMWpuP0zJEAwCNzqGek4NMuWwj+UeuOEymk94YZhHzJ9CRXlA9KX75quPsGUXB9vJ/bsK6win6qNfOFezVEzGmJJpugxTwLK9qVxmeAPNsA/fasnlHoYEUR6ARumOalwbH3BBAvrRQkzJmJghGAR2AdGNZ2cYM2mGfXgVfAseZtCyhApiPQBtkbD0ljQlDf2oMWZQTJwQDAIDPpZLy/bcNKgJBXgVfAtCCwMeQF9iq9SQvnoCmpLRjzIwcWKShiAMDPg4OEMorIZU+BO8CkLLAw5KU8OWr5i0JUpJP2qG8zhM1RBMBzwJ/mS6HSMsqNakO6mOIohx+e4n/aAKRZ0HqzLw/YMPwZP4Usweh4kcz3WwoacsCYffJrrp/fK6tPxKSpzNKNlwMH3CZ0k1dQ2UNRRQk/juR0lYpmGxhiUbZOOAvPAh4/KKyrVs781x25I4OL97Eo93F+y8gcU8vZ0IuoMvAYPbjmf7rTtHiRFbElbuyziUXKQUsEidJD39KBrrpsiZfhCMA/Zd8CHj8orKlZRdhmcNHIrpDh81izD91te01vKyIfqNrRHGQzySNyI3lnvwHiMytnwWjFIY51q+XAlLNBf9qCLOaijPg6FM0IrLPVIB+hD3PUaptuKp+tplRvpRJP15MJRbcbmH0kUBbq37WSNRFh4QZfPSjyl8egjtoTS9Zmv1HRwUTzgTVgzBmI+mtVY1JCy3g4S22pwpzDWgkwZYkRRuGI07Hk84JR/w1070adgylhJVH425+PaQt8Z5MwxjeodbNP1Yn4JOGkDTjLc7Y8VQ/ylsrEM8HTdP9+tozcj0m94DFm3Bou9+i2a+sfG09Dcqy0F76wGZ/vbGqKj2yPSL6q72pizTbyZGsSwHzGRcMrNmpz8xu5yysnjKTqn54KtV1TUAlPVUSvDklrIobTWz00/zBT9SKXpHIfq8IX1xvNmliswuqgYorZXV1lNqSq5mXvpBBh6qUlY6MauMUlNADSUKpGolme8TuucySwCt4vRdZhVW60syd7x56df3zR7eVuFxeyT1t8F5LWD6iBbzqfvIGBFfKectUV9kYnYZoC9VK/5oSlGDUpJPb2gZNnwpln7DFjU1ouYGKiPD6WHidzlwLotjefriijaO1qythPLXz/YHKGuS9+GoDkzrrBPNS7+EHSqbMkcPyPSbo1fbjE2Z/jZDlTkqKtNvjl5tMzZl+tsMVeaoqEy/OXqVxya2dq/tTmEa3/Q3bfslHo3WiJLpb6Fe//JMzmcn7pDCNjzehwitHhpLf6tXvE1V4EZexeKfkkmVI2f4hfToRORWD2X6W4KCf5y6o1SqDnamBbu+Ee7dEkXSlSHTT9dPJmgplcqyqoapQa7Ai8N7mGBJ+qwy/dL3qZZFhmG2z+n768shwIyBVK/B0rJgvst2SP/KX2899lnS/O+u7btC9dKl1PzK9QczZn99tf+Gc/YrjpHFecc/H+u37tzTUVc+PJiBmRt3sFgOkCWzsGrVvrSHPo53eue444pjQMjGuDejUxKySpEq1qA59KWk/8Xvr9ksjw3eGPfq7pSKmmbPsLHtGbQ5zmZ5LIBermsQesB1NqMUaoDDith7ZbWk2ZuPZBJiEJKY1g1RDU1oVQbEe75/2ueDs+sP3o6/XVZW3VBeqwQu51Zsibkz+KML4VsTc0r4n/PCrPuqUy//mFxcWadlVvPyuW+vQpNAM16ULBn96QWVX53Nq1daXc2t+PuJO1jsaNYDT7T++UwgUoHrdytjU4Ve4fpU1BWoAeum+rk72mraMSjX1jdsOJR5OLnom7g8lR1BP4O1oymFAevOrdqX/lPCPVSsqpb1y9p6ZXJ+5a7E/NX70gPXxx1MLoQyJS7cLn1ka1Ku2nF5cx1PK/FccyYyhv915/nltTtO5wRtPFdnqP68xukjpaEfffbst9c1Sz2TXqp5CTnMy+kR9XsZF/9wo15Pw27mV95u/PiDg22Hl0eKXigdSWlyrMpa5dmMEhStDxiBNx/mJ0ArS8RvGVDWiuS9LKyoG/LxhbQC9ncmXhrpce29ocmrWFxfOfRv05vefLA8+mba/UpeO4i8U1w79tPEsmqhMQBqpsBU+knZmQVVp9KadfSupDwtz2UYq6/msu8AvllQfUvdQcQCF/6UkEfkaQO6OiqsiUwZ1tQ3zG/uhc99e622Xu9H6TCv/3a9gBhfOsYzfc3wgvWjOGSsHb52og9JPZ1ewm3cSYy+8O8n2bMdF3vrXQuCts/uF9jdIcCdRb9uDsvHeZ//82CkEgsjtySUVuklGOVuPc4aJPrShtLQvzvpHqnW3CHu4/w7Q8Y2d9OhTAia6OWiGOBhT2KiL/L/MkZ8FvuRr1G+KjtEmTJEZ91tHHL/GOzi7dwRuW7dr9b3qRvcVe/vZ98iP6KX09ZZAT6udi4Othx6udhFTPZdMsoTdoAdp3O1FjSI1MXJm8Uk8sjS0Fmh7kTWCof0dIqc6U8i88pqd5zJJTJvuDU2O6uIf5XAqy8qUhr6uQ/NDffp/NXc/qQGq/enVzd//RDDMFOD2e97n89sNlqQLJgR9lxkPelJPX1HNHnDo+qRP2Jy743T2IPVQ3qm7Su5FZyRnfPZOnMxnPB6eNPPg9B8kDCrWEWVNWMV6in0myeaL6yL45uhpgS6drJVnRTllNYEfni2qlbvGMZV1QhBAvoxKR5Vd3G4n7OPi6KbI7teu363qYtJ5fq4ORDhWFoxMhKZCxOzyjBs4JJhlF5dFBDoAWsxKaoFml9XuzBvp1lhbl07qapxsvmsxBnEfo/ID/fpLPBmtt6uCntbhuDSHXZkIhl5Q6xdEO/vbscwKvIg86Kns6KvGzsQHkpuWq9wyj2cbWNfH0QusWV48XsRL5ojuWhCCej/Lj4P9UNhrvbWQR4ODMNELwzGJcDdypAJZqrPPXJKahOym/Um1goL1I38cV4QI9R7xFizsKCiLvamakSZPtANWRU21jNCVCPNvqsFvIN2RoHqNoWJYI9ODIMcEHlgZ2tdsXkswezB3Xk0mkeVN96mDKPXIFFnGGZ4b3Z2wzqfRGqFg70df1scosBIYmX1/YW8vXqmS61coi5NpR+rrefVq60tM/1trVUGR/h29uysQD0Op7ATIWQCt062cwaxM+Lz317DLUviEcakFF3KUX0nxL2TzawwVgfxlPgm7i7R9HFhf87Hy1lVB0T+cpnq/AeaDxTgIpP6uy4Zwy4+3v0lTbO7JKmqii1TDK3Zn06yd7W35lY6qPeMUFfEn7pVlKGzwv9ouh/GdqReza08l8nuD3HrL1Lf+nsWBsMCFOhxp7j6nf+kEf3Zavd6ZnA3ErPkx+TCCvb4iMS0ofDt8T29OndEhXEOgY2M1nIK8abAJPoxqG46fJsU/7eZ/g4dm/Zpjwao6MdEvuiHG1o+i0l95WO9SK7n/nWVCMl5FRmN69seXWxH9+5CIulDnJHV4pzIyuqpMPduTqrOQl7ssvp0VQ0AxdX1EQduIaYtwrOL4vJ7Q8kNszP+3qTPL0rYCpPoJ2N1Y22spgapJloiIxzp64QQwLqmtLrZATAiF45gz3NS86vhQ4g5ol48jg9wFXvr44bABA8jwHuP9UTIYdPj7BnLp8dysK3g4h8EQeuuEKiSs73NvpdCiEJMavHlximSXJoYmkS/5mJkzKcJIZvOcwjflsjVbOnuFE4mQu+u9gM82C3AgcaDl/gs1ayPVCO2+/9RT+1YJJ2/XYbjUg55ZTWwSXBY7WHkkj6sqVfCRwkM5sL616AOFMA9V20yRCFSAFgEzBnEzmVv/ZwqoCkqyST6f7/etKS6frcSXskhOY899URt/nU+r6hSe+qdoj4AOHmrBH2xK4FduD0ZKvqR6JFUduOE4R+zgCZe252KChD8fkO1LSQyQhcH9lfo6pU4s0aEXmC87fT2CaD3X87qVVIndGucp3OKatAodRzP/4WVdcVV7KDI3Qk8euoojIjce3J/v170xWlpjgKNp/9abnliNrutXzSyx5vjvHXh78Yuwv+dpH3G92gA+7tMB67d35V4r7zxWcuEvl24MwN1ww3/zx20Casm3G62z+QeJsXfFnr8Cha506RhPuyMJlBQkIfqg1xYbWw8hMcEehXXqpfM0JgZyt7WkAXQ3anjf18ZSE6LX/oxZY9Olwrk1ZdkJP3olFlRV4jRTrbM9qcDPp7up4vZ6vHq1C3Vjpzok3B8XxciXM2tnP31NSLjxBBuTmTKMDGr9KJ6LvzTw56r/9BLCy+NZDfrMTcLMwubxqTAbuzscyGrfP9V9uRft1DNMeOZIYZ5Gqz+geOV+zLwTEHXIGJ+vZy/Tf2xT/Te80PZGiJJGBP6uVx8ZyjRwQMtIpgSGkl/eU0DaCMFfzDZVx9nYd7swSfO4+AxRJ+ENh2Yp8KajfO+rgrPLuyinegIhzAIPP7FZaJmb8t88mTAX6f01sL/z+pLFJRK5gWNH2kI9nBwUrDNn7bjZ2i2lAAAAx1JREFUMraORE0zzCmpmfw5+6Fs2OdmX00dLflJjbPq9/enY0mLSmoCBb2xp2lK+m5eEJ6GaxkRuPR2VjwxoNkqW0DZYBLbfoN6WgrRjT/HhEiM1YtHe0HgxcRAVyzHkJRWUB2n3uLjkgCPPkkqudy9QNx2v6iyHsgqYhd3f4UXEkPNQ1vrDtwBAIZx7qUbcNl/zGafQCLHq7tSsIPQ5AmXr6g/nguFb57tT8NTv272R14b6Oui2nAi16OfXeyw/JgmvNaeQW8gCfhwau8/iudy9UQfsg+EBRNhJP0n0tjjvO2z+zoqmrb7WrVxUlivmeRLImf88zI6l8gk9Ha2+/2VgUTu46rAGSeRKcNdSfcAoozTgiVj9Hrhlhl+CrWj/aJ2XGTE+eO8oex4/vPl+3ZvHdfkCZeIhBqwckIvyoNIeNUjAS543EcmaeTlxZCejpkRI2AW+rwKApEP9XT675JQAQX6JCPpP57G0v+HQHYKZ4vU+W/hcA8Sd6e4VveJ2fgA59GNR99j/V3EdkRsaiFAjH8zt38njUMnEsmFWDRhXUIusW8mAkKUGDU3cPeCIAzsuOQF5mY8wlg3hXViXh3dSOxs768fnbJq2OtjPfu6s492oObt3HHRiO6nlw2Ke3NwT/WZNOLF4tG+znFvDvJXPzQSm53TN5L+K+8OVTa+t8HeVu+tT8rwclYQTYToFBLJhSDgxBuDkMR9EoRL0hJWjO8FNQKSNLp3F2D9VB8g3N/AQeG8od2hBoxQn0cRI6gAZuvSTQ9//nTAOP8u3CABYXKgyw/z+5f838NPhLhBjehzIakJF3LxpgvE5hdzAgVMoT4P9eqcsnoYURbQFE4ykn5hoy2T+uoYL+C9Cb4AJnjhQp3sbKAGzBvqoatp3YFZPMrz6NKwqo/Hkg6FsH/JQOxcaOZ7XYOIAUP+7vafzAy4sYolCZZvR4zcMSdwhG9npEKn1dGG6W/1vmsHFZDpbwckGt8EmX7j+64d5JTpbwckGt8EmX7j+64d5DQX/e2gayyhCTL9lsCy3jbK9OvtGktIkOm3BJb1tvF/AAAA//+z+ZaMAAAABklEQVQDAIen5FE8pfmDAAAAAElFTkSuQmCC" alt="YPF Aviación">
+    <div>
+      <h1 id="mainTitle">MAPA DE RUTAS INT/CAB</h1>
+      <div id="subtitle">Vuelos, pasajeros y ocupación por ruta — Fuente: ANAC, series históricas 2001-2026</div>
+    </div>
+  </div>
+  <div id="controls">
+    <div class="ctrl-group" style="position: relative;">
+      <label for="yearMultiBtn">Año:</label>
+      <button id="yearMultiBtn" class="toggle-btn" onclick="toggleYearDropdown()" style="min-width: 90px; text-align: left;">—</button>
+      <div id="yearDropdown" class="year-dropdown"></div>
+    </div>
+    <div class="ctrl-group" style="position: relative;">
+      <label for="monthMultiBtn">Mes:</label>
+      <button id="monthMultiBtn" class="toggle-btn" onclick="toggleMonthDropdown()" style="min-width: 90px; text-align: left;">—</button>
+      <div id="monthDropdown" class="year-dropdown"></div>
+      <button id="allYearBtn" class="toggle-btn" onclick="selectAllMonths()">Todo el año</button>
+    </div>
+    <div class="divider"></div>
+    <div class="ctrl-group">
+      <button class="toggle-btn active" id="btn-cabotaje" onclick="toggleType('cabotaje')">Cabotaje</button>
+      <button class="toggle-btn active" id="btn-internacional" onclick="toggleType('internacional')">Internacional</button>
+    </div>
+    <div class="divider"></div>
+    <div class="ctrl-group" title="Con el modelo activado, rutas de baja ocupación se calculan con avión regional (Embraer 190 o CRJ200) en vez de forzar un narrowbody grande como A320/737. Apagalo para comparar cuánto cambia el volumen estimado si siempre se asumiera un avión grande.">
+      <label for="modelToggleBtn">Avión regional si &lt;100 pax/vuelo:</label>
+      <button id="modelToggleBtn" class="toggle-btn active" onclick="toggleAssignmentModel()">Sí</button>
+    </div>
+    <div class="divider"></div>
+    <div class="ctrl-group" style="position: relative;">
+      <label for="airportMultiBtn">Aeropuerto:</label>
+      <button id="airportMultiBtn" class="toggle-btn" onclick="toggleAirportDropdown()" style="min-width: 110px; text-align: left;">Todos</button>
+      <div id="airportDropdown" class="year-dropdown" style="min-width: 240px;"></div>
+      <div id="airport-item-tooltip">
+        <div class="fst-row"><span class="fst-label">Vuelos</span><span id="ait-vuelos" class="fst-value"></span></div>
+        <div class="fst-row"><span class="fst-label">Despachos totales</span><span id="ait-despachos" class="fst-value"></span></div>
+        <div class="fst-row"><span class="fst-label">Volumen total</span><span id="ait-volumen" class="fst-value"></span></div>
+        <div class="fst-row fuel-locked-row" onclick="promptFuelUnlock()"><span class="fst-label">Ingreso total</span><span id="ait-ingreso" class="fst-value"></span></div>
+        <div class="fst-row fuel-locked-row" onclick="promptFuelUnlock()"><span class="fst-label">Precio promedio</span><span id="ait-precio" class="fst-value"></span></div>
+        <div class="fst-row fuel-locked-row" onclick="promptFuelUnlock()"><span class="fst-label">Ingreso prom./despacho</span><span id="ait-ingreso-despacho" class="fst-value"></span></div>
+        <div class="fst-row"><span class="fst-label">Volumen prom./despacho</span><span id="ait-volumen-despacho" class="fst-value"></span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="stats"></div>
+<div id="fuel-diag-warning" onclick="window.open('/admin', '_blank')" title="Click para abrir /admin y agregar el alias"></div>
+
+<div id="route-detail-panel" style="display:none;">
+  <div id="route-detail-header">
+    <span id="route-detail-title">Ruta</span>
+    <button id="route-detail-close" onclick="closeRouteDetail()">✕</button>
+  </div>
+  <div id="route-detail-body">
+    <div class="rd-row"><span class="rd-label">Vuelos</span><span id="rd-vuelos" class="rd-value"></span></div>
+    <div class="rd-row"><span class="rd-label">Pasajeros</span><span id="rd-pax" class="rd-value"></span></div>
+    <div class="rd-row"><span class="rd-label">Ocupación</span><span id="rd-ocup" class="rd-value"></span></div>
+    <div class="rd-row"><span class="rd-label">Distancia</span><span id="rd-dist" class="rd-value"></span></div>
+    <div class="rd-divider"></div>
+    <div class="rd-row">
+      <span class="rd-label">Avión</span>
+      <select id="rd-avion-select" onchange="onRouteDetailAircraftChange()"></select>
+    </div>
+    <div class="rd-row">
+      <span class="rd-label">Aerolínea</span>
+      <select id="rd-aerolinea-select" onchange="onRouteDetailAerolineaChange()"></select>
+    </div>
+    <div class="rd-row"><span class="rd-label">Asientos</span><span id="rd-asientos" class="rd-value"></span></div>
+    <div class="rd-row"><span class="rd-label">Duración est.</span><span id="rd-duracion" class="rd-value"></span></div>
+    <div class="rd-divider"></div>
+    <div class="rd-row">
+      <span class="rd-label">Ajustar por ocupación real</span>
+      <button id="rd-ocup-toggle" class="toggle-btn" onclick="toggleOcupAdjust()">No</button>
+    </div>
+    <div id="rd-ocup-adjust-note" class="rd-row" style="display:none;">
+      <span class="rd-label" style="font-size:11px;">Factor de ocupación</span>
+      <span id="rd-ocup-adjust-value" class="rd-value" style="font-size:11px;"></span>
+    </div>
+    <div class="rd-row"><span class="rd-label">Consumo est./vuelo</span><span id="rd-consumo" class="rd-value"></span></div>
+    <div class="rd-row"><span class="rd-label">Consumo est./pax</span><span id="rd-consumo-pax" class="rd-value"></span></div>
+    <div id="rd-hint">Cambiá el avión (y opcionalmente la aerolínea) para simular el consumo con otro modelo o config. Esto no guarda nada, solo simula.</div>
+  </div>
+</div>
+
+<div id="route-panel">
+  <div id="route-panel-header">
+    <span>Rutas</span>
+    <div>
+      <button class="mini-btn" onclick="selectAllRoutes(true)">Todas</button>
+      <button class="mini-btn" onclick="selectAllRoutes(false)">Ninguna</button>
+    </div>
+  </div>
+  <input id="routeSearch" type="text" placeholder="Buscar ruta..." oninput="filterRouteList()">
+  <div id="route-list"></div>
+</div>
+
+<div id="airport-choice-menu">
+  <div class="acm-title" id="acm-title">Ezeiza</div>
+  <button class="acm-btn" id="acm-routes-btn">Ver rutas</button>
+  <button class="acm-btn" id="acm-fuel-btn">Ver datos de combustible</button>
+</div>
+
+<div id="fuel-sales-overlay" onclick="if(event.target===this) closeFuelSalesPanel()">
+  <div id="fuel-sales-panel">
+    <div id="fuel-sales-header">
+      <div id="fuel-sales-title-wrap">
+        <span id="fuel-sales-title">Ventas de combustible</span>
+        <div id="fuel-sales-title-tooltip">
+          <div class="fst-row"><span class="fst-label">Vuelos</span><span id="fst-vuelos" class="fst-value"></span></div>
+          <div class="fst-row"><span class="fst-label">Despachos totales</span><span id="fst-despachos" class="fst-value"></span></div>
+          <div class="fst-row"><span class="fst-label">Volumen total</span><span id="fst-volumen" class="fst-value"></span></div>
+          <div class="fst-row fuel-locked-row" onclick="promptFuelUnlock()"><span class="fst-label">Ingreso total</span><span id="fst-ingreso" class="fst-value"></span></div>
+          <div class="fst-row fuel-locked-row" onclick="promptFuelUnlock()"><span class="fst-label">Precio promedio</span><span id="fst-precio" class="fst-value"></span></div>
+          <div class="fst-row fuel-locked-row" onclick="promptFuelUnlock()"><span class="fst-label">Ingreso prom./despacho</span><span id="fst-ingreso-despacho" class="fst-value"></span></div>
+          <div class="fst-row"><span class="fst-label">Volumen prom./despacho</span><span id="fst-volumen-despacho" class="fst-value"></span></div>
+        </div>
+      </div>
+      <button id="fuel-sales-close" onclick="closeFuelSalesPanel()">✕</button>
+    </div>
+    <div id="fuel-sales-controls">
+      <label for="fuel-sales-airline-filter">Aerolínea:</label>
+      <select id="fuel-sales-airline-filter" onchange="renderFuelSalesTable()"></select>
+      <span id="fuel-sales-summary"></span>
+    </div>
+    <div id="fuel-sales-table-wrap">
+      <table id="fuel-sales-table">
+        <colgroup>
+          <col class="col-vuelo"><col class="col-llaa"><col class="col-destino">
+          <col class="col-num"><col class="col-num"><col class="col-num">
+          <col class="col-num"><col class="col-num"><col class="col-num">
+        </colgroup>
+        <thead>
+          <tr>
+            <th data-key="vuelo" onclick="sortFuelSales('vuelo')">Vuelo<span class="sort-arrow"></span></th>
+            <th data-key="llaa" onclick="sortFuelSales('llaa')">Aerolínea<span class="sort-arrow"></span></th>
+            <th data-key="destino" onclick="sortFuelSales('destino')">Destino<span class="sort-arrow"></span></th>
+            <th data-key="cant_vuelos" onclick="sortFuelSales('cant_vuelos')">Cant. de Vuelos<span class="sort-arrow"></span></th>
+            <th data-key="volumen_m3" onclick="sortFuelSales('volumen_m3')">Volumen (m³)<span class="sort-arrow"></span></th>
+            <th data-key="precio_usd_l" onclick="sortFuelSales('precio_usd_l')">Precio (USD/l)<span class="sort-arrow"></span></th>
+            <th data-key="ingreso_usd" onclick="sortFuelSales('ingreso_usd')">Ingreso (USD)<span class="sort-arrow"></span></th>
+            <th data-key="ingreso_por_vuelo" onclick="sortFuelSales('ingreso_por_vuelo')">Ingreso/vuelo (USD)<span class="sort-arrow"></span></th>
+            <th data-key="volumen_por_vuelo" onclick="sortFuelSales('volumen_por_vuelo')">Volumen/vuelo (m³)<span class="sort-arrow"></span></th>
+          </tr>
+        </thead>
+        <tbody id="fuel-sales-tbody"></tbody>
+      </table>
+      <div id="fuel-sales-empty" style="display:none;">
+        No hay datos de combustible cargados para este aeropuerto en el período seleccionado.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let DATA = null;
+const activeTypes = { cabotaje: true, internacional: true };
+let activeMetric = 'ocup';
+const deselectedRoutes = new Set(); // route keys (o + ' - ' + d) the user unchecked (fully hidden)
+let selectedRoutes = new Set(); // route keys highlighted via click (others get dimmed, not hidden)
+let selectedAirports = new Set(); // multi-selección de aeropuertos, solo relevante en modo 'custom'
+let airportFilterMode = 'all'; // 'all' (mostrar todos) | 'none' (no mostrar ninguno) | 'custom' (usar selectedAirports)
+let lastCandidates = [];
+const METRIC_LABELS = { ocup: 'Ocupación (pax/vuelo)', pax: 'Pasajeros', vuelos: 'Vuelos' };
+const TYPE_COLORS = { cabotaje: 'rgba(90,200,150,0.75)', internacional: 'rgba(240,150,60,0.75)' };
+
+function colorForRoute(routeKey) {
+  // deterministic hash of the route name -> hue, so each route keeps a stable, distinct color
+  let hash = 0;
+  for (let i = 0; i < routeKey.length; i++) {
+    hash = (hash * 31 + routeKey.charCodeAt(i)) >>> 0;
+  }
+  const hue = hash % 360;
+  return `hsla(${hue}, 75%, 62%, 0.8)`;
+}
+
+let selectedYears = new Set(); // multi-year selection
+let fuelAccessUnlocked = false;
+
+fetch('/api/data').then(r => r.json()).then(d => {
+  DATA = d;
+  if (d.modelo_params) MODELO = Object.assign({}, MODELO, d.modelo_params);
+  // Marcador de versión: si el subtítulo no muestra "v2", lo que está corriendo es la build
+  // anterior. Si aparece en rojo, los JSON del modelo no llegaron al servidor.
+  const sub = document.getElementById('subtitle');
+  if (sub && d.version) {
+    const md = d.modelo_datos || {};
+    const ok = (md.tipos_en_flota || 0) > 0 && (md.rutas_con_consumo_real || 0) > 0;
+    sub.innerHTML = sub.textContent +
+      ` · <span style="color:${ok ? '#8fe3a2' : '#ff9a9a'}" title="${
+        ok ? `${md.tipos_en_flota} tipos de avión · ${md.rutas_con_consumo_real} rutas con consumo real`
+           : 'Faltan flota.json y/o consumo_rutas.json en el servidor'}">${d.version}</span>`;
+  }
+  fuelAccessUnlocked = !!d.fuel_access;
+  updateUnlockFuelBtn();
+  selectedYears = new Set([DATA.years[DATA.years.length - 1]]);
+  buildYearDropdown();
+  updateYearBtnLabel();
+  populateMonths();
+  render();
+}).catch(err => {
+  document.getElementById('stats').textContent = 'Error cargando datos: ' + err;
+});
+
+// Universo de rutas para el período/tipo actual, INDEPENDIENTE de los checkboxes de "Rutas"
+// (deselectedRoutes) — así el desplegable de aeropuertos y la lista de nodos no dependen de
+// qué líneas estén tildadas a la derecha.
+function visibleCandidates() {
+  return lastCandidates;
+}
+
+// Consumo estimado (m³) atribuible a CADA aeropuerto individualmente: de cada ruta que lo toca,
+// se le carga la mitad (la otra mitad se cargó del otro lado), multiplicado por la cantidad de vuelos.
+// Se usa solo para ORDENAR el desplegable, de mayor a menor consumo.
+function airportConsumptionTotals() {
+  const totals = new Map();
+  visibleCandidates().forEach(r => {
+    const contrib = (r.consumoM3 || 0) * (r.vuelos || 0) / 2;
+    totals.set(r.o, (totals.get(r.o) || 0) + contrib);
+    totals.set(r.d, (totals.get(r.d) || 0) + contrib);
+  });
+  return totals;
+}
+
+// Aeropuertos que efectivamente tienen alguna ruta visible con el filtro actual (año/mes/tipo/checkboxes),
+// más los aeropuertos "aislados" (solo combustible, sin ruta de pasajeros), MÁS todo aeropuerto
+// argentino conocido — este último grupo se agrega siempre, tenga o no actividad en el período
+// actual, con el mismo criterio que usa el dibujo de los puntos del mapa (ver render()): "no
+// tuvo vuelos este mes" no es lo mismo que "no existe", y este desplegable es donde más se nota
+// si un aeropuerto cargado a mano (sin ruta ni combustible todavía) falta.
+function relevantAirportNames() {
+  const names = new Set();
+  visibleCandidates().forEach(r => { names.add(r.o); names.add(r.d); });
+  (DATA.isolated_airports || []).forEach(n => names.add(n));
+  (DATA.nodes.meta || []).forEach(n => { if (n[4]) names.add(n[0]); });
+  return names;
+}
+
+// Convierte el modo actual ('all'/'none') en un set explícito antes de que el usuario
+// toque un checkbox individual, para que tildar/destildar uno solo funcione como se espera
+// en vez de partir de un estado ambiguo.
+function ensureCustomAirportMode() {
+  if (airportFilterMode === 'all') {
+    selectedAirports = new Set(relevantAirportNames());
+  } else if (airportFilterMode === 'none') {
+    selectedAirports = new Set();
+  }
+  airportFilterMode = 'custom';
+}
+
+// Aeropuertos argentinos relevantes (DATA.nodes.meta[*][3] = hasData, que ANAC solo reporta
+// para aeropuertos del país — los destinos internacionales no tienen ese dato propio).
+// Aeropuertos argentinos relevantes: usa el flag is_argentina (marcado explícitamente en el
+// admin, sembrado desde geocode.py) en vez de si ANAC reporta pax para ese aeropuerto -- así
+// no se pierden los que tienen datos de combustible pero cero tráfico de pasajeros reportado.
+function argentinaAirportNames(relevantNames) {
+  const nodeMeta = (DATA && DATA.nodes.meta) || [];
+  return nodeMeta.filter(n => n[4] && relevantNames.has(n[0])).map(n => n[0]);
+}
+
+let airportSearchQuery = ''; // persiste el texto buscado entre reconstrucciones del desplegable
+
+function buildAirportDropdown() {
+  const dropdown = document.getElementById('airportDropdown');
+  if (!dropdown || !DATA) return;
+  dropdown.innerHTML = '';
+
+  const totals = airportConsumptionTotals();
+  const relevantNames = relevantAirportNames();
+  const names = [...relevantNames].sort((a, b) => (totals.get(b) || 0) - (totals.get(a) || 0));
+  const argNames = argentinaAirportNames(relevantNames);
+
+  const searchInput = document.createElement('input');
+  searchInput.type = 'text';
+  searchInput.placeholder = 'Buscar aeropuerto...';
+  searchInput.value = airportSearchQuery;
+  searchInput.style.cssText = 'width:100%; box-sizing:border-box; font-size:12px; padding:5px 8px; ' +
+    'border-radius:6px; border:1px solid #3a4470; background:#0b1020; color:#fff; margin-bottom:6px;';
+  searchInput.addEventListener('click', (e) => e.stopPropagation());
+  searchInput.addEventListener('input', (e) => {
+    airportSearchQuery = e.target.value;
+    filterAirportDropdownList();
+  });
+  dropdown.appendChild(searchInput);
+
+  const actions = document.createElement('div');
+  actions.className = 'year-actions';
+  const allBtn = document.createElement('button');
+  allBtn.className = 'mini-btn'; allBtn.textContent = 'Todos';
+  allBtn.onclick = (e) => {
+    e.stopPropagation();
+    airportFilterMode = 'all';
+    selectedAirports = new Set();
+    applyAirportSelection();
+  };
+  const noneBtn = document.createElement('button');
+  noneBtn.className = 'mini-btn'; noneBtn.textContent = 'Ninguno';
+  noneBtn.onclick = (e) => {
+    e.stopPropagation();
+    airportFilterMode = 'none';
+    selectedAirports = new Set();
+    applyAirportSelection();
+  };
+  actions.appendChild(allBtn);
+  actions.appendChild(noneBtn);
+  dropdown.appendChild(actions);
+
+  // Primera opción: "Argentina" selecciona de un saque todos los aeropuertos del país
+  if (argNames.length) {
+    const argRow = document.createElement('div');
+    argRow.className = 'year-item';
+    const argCb = document.createElement('input');
+    argCb.type = 'checkbox';
+    argCb.checked = airportFilterMode === 'all'
+      || (airportFilterMode === 'custom' && argNames.every(n => selectedAirports.has(n)));
+    argCb.onchange = () => {
+      ensureCustomAirportMode();
+      if (argCb.checked) argNames.forEach(n => selectedAirports.add(n));
+      else argNames.forEach(n => selectedAirports.delete(n));
+      applyAirportSelection();
+    };
+    const argLabel = document.createElement('label');
+    argLabel.textContent = 'Argentina (todos los del país)';
+    argLabel.style.fontWeight = 'bold';
+    argRow.appendChild(argCb);
+    argRow.appendChild(argLabel);
+    argRow.onclick = (e) => { if (e.target !== argCb) { argCb.checked = !argCb.checked; argCb.onchange(); } };
+    dropdown.appendChild(argRow);
+
+    const divider = document.createElement('div');
+    divider.style.cssText = 'height:1px; background:#2a3358; margin:4px 6px;';
+    dropdown.appendChild(divider);
+  }
+
+  names.forEach(name => {
+    const row = document.createElement('div');
+    row.className = 'year-item airport-item-row';
+    row.dataset.name = name.toLowerCase();
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = airportFilterMode === 'all' || (airportFilterMode === 'custom' && selectedAirports.has(name));
+    cb.onchange = () => {
+      ensureCustomAirportMode();
+      if (cb.checked) selectedAirports.add(name);
+      else selectedAirports.delete(name);
+      applyAirportSelection();
+    };
+    const label = document.createElement('label');
+    const m3 = totals.get(name) || 0;
+    label.textContent = `${name} — ${m3.toLocaleString('es-AR', {maximumFractionDigits: 0})} m³`;
+    row.appendChild(cb);
+    row.appendChild(label);
+    row.onclick = (e) => { if (e.target !== cb) { cb.checked = !cb.checked; cb.onchange(); } };
+    row.addEventListener('mouseenter', () => showAirportItemTooltip(name, row));
+    row.addEventListener('mouseleave', hideAirportItemTooltip);
+    dropdown.appendChild(row);
+  });
+
+  filterAirportDropdownList();
+}
+
+// Filtra las filas de aeropuerto del desplegable según el texto tipeado en el buscador.
+// La fila "Argentina (todos los del país)" y el divisor quedan siempre visibles.
+function filterAirportDropdownList() {
+  const q = airportSearchQuery.trim().toLowerCase();
+  document.querySelectorAll('#airportDropdown .airport-item-row').forEach(row => {
+    row.style.display = (!q || row.dataset.name.includes(q)) ? 'flex' : 'none';
+  });
+}
+
+// Agrega/quita los datos de combustible de un aeropuerto para el período (año/mes) actualmente
+// tildado en el mapa, usando DATA.fuel_nodes -- mismo criterio que el hover del punto en el mapa.
+function fuelStatsForAirportName(name) {
+  const idx = DATA.nodes.meta.findIndex(n => n[0] === name);
+  if (idx === -1) return null;
+  const years = DATA.years.filter(y => selectedYears.has(y));
+  const months = availableMonths().filter(m => selectedMonths.has(m));
+  let vuelosDistintos = 0, despachos = 0, volumen = 0, ingreso = 0, hasIngreso = false;
+  for (const year of years) {
+    for (const month of months) {
+      const ym = `${year}-${month}`;
+      const rows = (DATA.fuel_nodes && DATA.fuel_nodes[ym]) || [];
+      for (const [rIdx, rVuelos, rDespachos, rVolumen, rIngreso] of rows) {
+        if (rIdx !== idx) continue;
+        vuelosDistintos += rVuelos || 0;
+        despachos += rDespachos || 0;
+        volumen += rVolumen || 0;
+        // rIngreso viene null si la sesión no desbloqueó la segunda contraseña.
+        if (rIngreso != null) { ingreso += rIngreso; hasIngreso = true; }
+      }
+    }
+  }
+  if (!despachos) return null;
+  return {
+    vuelosDistintos, despachos, volumen,
+    ingreso: hasIngreso ? ingreso : null,
+    precioProm: (hasIngreso && volumen > 0) ? ingreso / (volumen * 1000) : null,
+    ingresoPorDespacho: hasIngreso ? ingreso / despachos : null,
+    volumenPorDespacho: volumen / despachos,
+  };
+}
+
+function showAirportItemTooltip(name, targetEl) {
+  const stats = fuelStatsForAirportName(name);
+  const tooltip = document.getElementById('airport-item-tooltip');
+  if (!stats) { tooltip.classList.remove('show'); return; }
+
+  document.getElementById('ait-vuelos').textContent = stats.vuelosDistintos.toLocaleString('es-AR');
+  document.getElementById('ait-despachos').textContent = stats.despachos.toLocaleString('es-AR');
+  document.getElementById('ait-volumen').textContent = stats.volumen.toLocaleString('es-AR', {maximumFractionDigits: 1}) + ' m³';
+  document.getElementById('ait-ingreso').textContent = stats.ingreso != null
+    ? 'USD ' + stats.ingreso.toLocaleString('es-AR', {maximumFractionDigits: 2}) : '🔒 Bloqueado';
+  document.getElementById('ait-precio').textContent = stats.precioProm != null
+    ? 'USD/l ' + stats.precioProm.toLocaleString('es-AR', {maximumFractionDigits: 6})
+    : (stats.ingreso == null ? '🔒 Bloqueado' : 'N/D');
+  document.getElementById('ait-ingreso-despacho').textContent = stats.ingresoPorDespacho != null
+    ? 'USD ' + stats.ingresoPorDespacho.toLocaleString('es-AR', {maximumFractionDigits: 2}) : '🔒 Bloqueado';
+  document.getElementById('ait-volumen-despacho').textContent = stats.volumenPorDespacho.toLocaleString('es-AR', {maximumFractionDigits: 3}) + ' m³';
+
+  const rect = targetEl.getBoundingClientRect();
+  tooltip.style.left = (rect.right + 8) + 'px';
+  tooltip.style.top = rect.top + 'px';
+  tooltip.classList.add('show');
+
+  // Si se sale de la pantalla por la derecha, mostrarlo a la izquierda de la fila en su lugar
+  const tooltipRect = tooltip.getBoundingClientRect();
+  if (tooltipRect.right > window.innerWidth) {
+    tooltip.style.left = (rect.left - tooltipRect.width - 8) + 'px';
+  }
+}
+
+function hideAirportItemTooltip() {
+  document.getElementById('airport-item-tooltip').classList.remove('show');
+}
+
+// ---------- Menú de elección al tocar un aeropuerto: "Ver rutas" o "Ver datos de combustible" ----------
+let pendingAirportChoice = null;
+
+function showAirportChoiceMenu(airportName, mouseEvent) {
+  pendingAirportChoice = airportName;
+  const menu = document.getElementById('airport-choice-menu');
+  document.getElementById('acm-title').textContent = airportName;
+
+  const x = (mouseEvent && mouseEvent.clientX) || window.innerWidth / 2;
+  const y = (mouseEvent && mouseEvent.clientY) || window.innerHeight / 2;
+  menu.style.left = x + 'px';
+  menu.style.top = y + 'px';
+  menu.classList.add('show');
+
+  // Si se sale de la pantalla, lo acomoda para que quede visible
+  const rect = menu.getBoundingClientRect();
+  if (rect.right > window.innerWidth) menu.style.left = (window.innerWidth - rect.width - 10) + 'px';
+  if (rect.bottom > window.innerHeight) menu.style.top = (window.innerHeight - rect.height - 10) + 'px';
+
+  // El listener se agrega recién en el próximo tick, así el mismo click que abrió el menú
+  // (que también burbujea hasta document) no lo cierra de inmediato.
+  setTimeout(() => document.addEventListener('click', handleAirportMenuOutsideClick), 0);
+}
+
+function handleAirportMenuOutsideClick(e) {
+  const menu = document.getElementById('airport-choice-menu');
+  if (!menu.contains(e.target)) hideAirportChoiceMenu();
+}
+
+function hideAirportChoiceMenu() {
+  document.getElementById('airport-choice-menu').classList.remove('show');
+  pendingAirportChoice = null;
+  document.removeEventListener('click', handleAirportMenuOutsideClick);
+}
+
+document.getElementById('acm-routes-btn').addEventListener('click', () => {
+  const airportName = pendingAirportChoice;
+  hideAirportChoiceMenu();
+  if (!airportName) return;
+  airportFilterMode = 'custom';
+  selectedAirports = new Set([airportName]);
+  applyAirportSelection();
+});
+
+document.getElementById('acm-fuel-btn').addEventListener('click', () => {
+  const airportName = pendingAirportChoice;
+  hideAirportChoiceMenu();
+  if (!airportName) return;
+  openFuelSalesPanel(airportName);
+});
+
+function toggleAirportDropdown() {
+  document.getElementById('airportDropdown').classList.toggle('open');
+}
+
+document.addEventListener('click', (e) => {
+  const dropdown = document.getElementById('airportDropdown');
+  const btn = document.getElementById('airportMultiBtn');
+  if (dropdown && !dropdown.contains(e.target) && e.target !== btn) {
+    dropdown.classList.remove('open');
+    hideAirportItemTooltip();
+  }
+});
+
+function updateAirportBtnLabel() {
+  const btn = document.getElementById('airportMultiBtn');
+  if (!btn) return;
+  if (airportFilterMode === 'all') { btn.textContent = 'Todos'; return; }
+  if (airportFilterMode === 'none') { btn.textContent = 'Ninguno'; return; }
+  const argNames = argentinaAirportNames(relevantAirportNames());
+  const isExactlyArgentina = argNames.length > 0
+    && selectedAirports.size === argNames.length
+    && argNames.every(n => selectedAirports.has(n));
+  if (selectedAirports.size === 0) btn.textContent = 'Ninguno';
+  else if (isExactlyArgentina) btn.textContent = 'Argentina';
+  else if (selectedAirports.size === 1) btn.textContent = [...selectedAirports][0];
+  else btn.textContent = selectedAirports.size + ' aeropuertos';
+}
+
+// Recalcula el filtro de aeropuertos y refresca todo lo que depende de eso: mapa, panel de
+// rutas de la derecha, y el propio desplegable. Ya NO toca selectedRoutes (eso queda reservado
+// solo para resaltar una ruta clickeada) — el filtrado por aeropuerto ahora ocurre directo en
+// render(), como un filtro real (oculta rutas ajenas), no como una atenuación de opacidad.
+function applyAirportSelection() {
+  selectedRoutes = new Set();
+  // "Ninguna" en el panel de Rutas (a la derecha) y "Ninguno" en este desplegable de
+  // Aeropuerto son dos controles DISTINTOS con nombres parecidos en español, y antes el
+  // primero dejaba un estado que persistía para siempre, sin importar qué filtro de
+  // aeropuerto se aplicara después — clickear "Ninguna" con "Todos" los aeropuertos
+  // tildados, y más tarde cambiar a un aeropuerto puntual, seguía mostrando esas rutas
+  // como destildadas, aunque nunca se hubieran tocado en esta vista nueva. Cada cambio de
+  // filtro de aeropuerto arranca de cero: todas sus rutas visibles, tildadas.
+  deselectedRoutes.clear();
+  closeRouteDetail();
+  // updateRouteList() reconstruye el DOM del panel entero (innerHTML = ''), así que tiene
+  // que ir ANTES de filterRouteList(): si fuera al revés, el filtro de búsqueda/aeropuerto
+  // se aplicaría sobre filas que un instante después se borran y se vuelven a crear sin él.
+  updateRouteList(lastCandidates);
+  filterRouteList();
+  renderMapOnly();
+}
+
+// Limpia la selección de aeropuertos sin disparar un render propio (lo hace quien llame a esto)
+function clearAirportSelectionSilently() {
+  if (airportFilterMode === 'all' && selectedAirports.size === 0) return;
+  airportFilterMode = 'all';
+  selectedAirports = new Set();
+  filterRouteList();
+}
+
+function buildYearDropdown() {
+  const dropdown = document.getElementById('yearDropdown');
+  dropdown.innerHTML = '';
+
+  const actions = document.createElement('div');
+  actions.className = 'year-actions';
+  const allBtn = document.createElement('button');
+  allBtn.className = 'mini-btn'; allBtn.textContent = 'Todos';
+  allBtn.onclick = (e) => { e.stopPropagation(); selectedYears = new Set(DATA.years); onYearChange(); };
+  const noneBtn = document.createElement('button');
+  noneBtn.className = 'mini-btn'; noneBtn.textContent = 'Ninguno';
+  noneBtn.onclick = (e) => {
+    e.stopPropagation();
+    if (selectedYears.size > 1) {
+      const last = DATA.years[DATA.years.length - 1];
+      selectedYears = new Set([last]);
+      onYearChange();
+    }
+  };
+  actions.appendChild(allBtn);
+  actions.appendChild(noneBtn);
+  dropdown.appendChild(actions);
+
+  DATA.years.forEach(y => {
+    const row = document.createElement('div');
+    row.className = 'year-item';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = selectedYears.has(y);
+    cb.onchange = () => {
+      if (cb.checked) selectedYears.add(y);
+      else if (selectedYears.size > 1) selectedYears.delete(y);
+      else cb.checked = true; // keep at least one year selected
+      onYearChange();
+    };
+    const label = document.createElement('label');
+    label.textContent = y;
+    row.appendChild(cb);
+    row.appendChild(label);
+    row.onclick = (e) => { if (e.target !== cb) { cb.checked = !cb.checked; cb.onchange(); } };
+    dropdown.appendChild(row);
+  });
+}
+
+function toggleYearDropdown() {
+  document.getElementById('yearDropdown').classList.toggle('open');
+}
+
+document.addEventListener('click', (e) => {
+  const dropdown = document.getElementById('yearDropdown');
+  const btn = document.getElementById('yearMultiBtn');
+  if (dropdown && !dropdown.contains(e.target) && e.target !== btn) {
+    dropdown.classList.remove('open');
+  }
+});
+
+function updateYearBtnLabel() {
+  const btn = document.getElementById('yearMultiBtn');
+  const years = DATA.years.filter(y => selectedYears.has(y));
+  if (years.length === 1) {
+    btn.textContent = years[0];
+  } else if (years.length === DATA.years.length) {
+    btn.textContent = 'Todos';
+  } else {
+    btn.textContent = years.length + ' años';
+  }
+}
+
+let selectedMonths = new Set(); // multi-month selection
+
+function availableMonths() {
+  // Siempre se pueden elegir los 12 meses del año calendario — así el usuario puede ver
+  // rutas manuales (que se dibujan en cualquier mes) incluso en meses sin tráfico real de ANAC.
+  return DATA.month_order;
+}
+
+function lastRealTrafficMonth() {
+  // Último mes con tráfico REAL de ANAC entre los años seleccionados (DATA.year_months
+  // ya viene filtrado por el backend para excluir meses que solo tienen rutas manuales).
+  const monthSet = new Set();
+  DATA.years.filter(y => selectedYears.has(y)).forEach(y => {
+    (DATA.year_months[y] || []).forEach(m => monthSet.add(m));
+  });
+  const realMonths = DATA.month_order.filter(m => monthSet.has(m));
+  return realMonths.length ? realMonths[realMonths.length - 1] : null;
+}
+
+function populateMonths() {
+  const months = availableMonths();
+  const prevSelected = [...selectedMonths].filter(m => months.includes(m));
+  if (prevSelected.length > 0) {
+    selectedMonths = new Set(prevSelected);
+  } else {
+    const defaultMonth = lastRealTrafficMonth() || (months.length ? months[months.length - 1] : null);
+    selectedMonths = new Set(defaultMonth ? [defaultMonth] : []);
+  }
+  buildMonthDropdown();
+  updateMonthBtnLabel();
+}
+
+function buildMonthDropdown() {
+  const dropdown = document.getElementById('monthDropdown');
+  dropdown.innerHTML = '';
+  const months = availableMonths();
+
+  const actions = document.createElement('div');
+  actions.className = 'year-actions';
+  const allBtn = document.createElement('button');
+  allBtn.className = 'mini-btn'; allBtn.textContent = 'Todos';
+  allBtn.onclick = (e) => { e.stopPropagation(); selectedMonths = new Set(months); onMonthChange(); };
+  const noneBtn = document.createElement('button');
+  noneBtn.className = 'mini-btn'; noneBtn.textContent = 'Ninguno';
+  noneBtn.onclick = (e) => {
+    e.stopPropagation();
+    if (selectedMonths.size > 1) {
+      const fallback = lastRealTrafficMonth() || (months.length ? months[months.length - 1] : null);
+      selectedMonths = new Set(fallback ? [fallback] : []);
+      onMonthChange();
+    }
+  };
+  actions.appendChild(allBtn);
+  actions.appendChild(noneBtn);
+  dropdown.appendChild(actions);
+
+  months.forEach(m => {
+    const row = document.createElement('div');
+    row.className = 'year-item';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = selectedMonths.has(m);
+    cb.onchange = () => {
+      if (cb.checked) selectedMonths.add(m);
+      else if (selectedMonths.size > 1) selectedMonths.delete(m);
+      else cb.checked = true; // keep at least one month selected
+      onMonthChange();
+    };
+    const label = document.createElement('label');
+    label.textContent = m;
+    row.appendChild(cb);
+    row.appendChild(label);
+    row.onclick = (e) => { if (e.target !== cb) { cb.checked = !cb.checked; cb.onchange(); } };
+    dropdown.appendChild(row);
+  });
+}
+
+function toggleMonthDropdown() {
+  document.getElementById('monthDropdown').classList.toggle('open');
+}
+
+document.addEventListener('click', (e) => {
+  const dropdown = document.getElementById('monthDropdown');
+  const btn = document.getElementById('monthMultiBtn');
+  if (dropdown && !dropdown.contains(e.target) && e.target !== btn) {
+    dropdown.classList.remove('open');
+  }
+});
+
+function updateMonthBtnLabel() {
+  const btn = document.getElementById('monthMultiBtn');
+  const months = availableMonths().filter(m => selectedMonths.has(m));
+  if (months.length === 1) {
+    btn.textContent = months[0];
+  } else if (months.length === availableMonths().length && months.length > 0) {
+    btn.textContent = 'Todos';
+  } else {
+    btn.textContent = months.length + ' meses';
+  }
+}
+
+function onMonthChange() {
+  buildMonthDropdown();
+  updateMonthBtnLabel();
+  render();
+}
+
+function onYearChange() {
+  buildYearDropdown();
+  updateYearBtnLabel();
+  populateMonths();
+  render();
+}
+
+function toggleType(t) {
+  activeTypes[t] = !activeTypes[t];
+  document.getElementById('btn-' + t).classList.toggle('active');
+  render();
+}
+
+// ---------- Selección de avión por ocupación (espejo de avion_model.py) ----------
+// El servidor manda, por ruta, las opciones de avión que podrían corresponderle
+// (meta[12] = [[codigo, pax_vuelo_max, consumo_kg_base, es_real], ...] de menor a mayor
+// capacidad). Acá se elige cuál aplica según la ocupación del período que el usuario tenga
+// seleccionado, así el mismo tramo puede resolverse con un E190 en temporada baja y con un
+// A320 en temporada alta, en vez de tener un avión fijo por ruta como antes.
+let MODELO = {
+  lf_referencia: 0.82,
+  elasticidad: 0.8,
+  pax_weight_share: { regional: 0.16, narrow: 0.14, wide: 0.10, piston: 0.20 },
+  kg_por_m3: 804.0,
+};
+
+// Switch del mapa: con esto en Sí (default), una ruta de baja ocupación se resuelve con un
+// avión regional (Embraer 190 / CRJ200). Apagado, el modelo se comporta como si esos tipos
+// no existieran y siempre asigna al menos un narrowbody real — reproduce la suposición
+// anterior a la corrección, para poder comparar cuánto cambia el volumen estimado.
+let usarRegionales = true;
+
+function toggleAssignmentModel() {
+  usarRegionales = !usarRegionales;
+  const btn = document.getElementById('modelToggleBtn');
+  btn.textContent = usarRegionales ? 'Sí' : 'No';
+  btn.classList.toggle('active', usarRegionales);
+  render();
+  // Si el panel de detalle de una ruta está abierto, refrescarlo con el nuevo avión por
+  // defecto (lastCandidates ya se recalculó en el render() de arriba).
+  if (currentRouteDetail) openRouteDetail(`${currentRouteDetail.o} - ${currentRouteDetail.d}`);
+}
+
+function ajustePorOcupacion(codigo, paxPorVuelo) {
+  const f = (DATA.flota || {})[codigo];
+  if (!f || paxPorVuelo == null || paxPorVuelo <= 0) return { factor: 1, lf: null };
+  const asientos = f.asientos || 0;
+  if (asientos <= 0) return { factor: 1, lf: null };
+  const lf = Math.min(paxPorVuelo / asientos, 1);
+  const share = MODELO.pax_weight_share[f.fuselaje] != null
+    ? MODELO.pax_weight_share[f.fuselaje] : 0.14;
+  const deltaPeso = share * (lf - MODELO.lf_referencia) / Math.max(MODELO.lf_referencia, 0.01);
+  let factor = 1 + MODELO.elasticidad * deltaPeso;
+  factor = Math.max(0.75, Math.min(1.25, factor));
+  return { factor, lf };
+}
+
+// Toma el avión MÁS CHICO cuyo pax_vuelo_max cubra la ocupación observada. Con
+// usarRegionales activado, el umbral del E190 en 100 hace que por debajo de eso nunca se
+// asuma un A320 o un 737. Con el switch apagado, los tipos 'regional' (E190, CRJ200) se
+// excluyen de la lista antes de elegir, así que el más chico posible pasa a ser un
+// narrowbody real — la comparación que pide el switch.
+function elegirOpcionAvion(opciones, paxPorVuelo) {
+  if (!opciones || !opciones.length) return null;
+  let candidatas = opciones;
+  if (!usarRegionales) {
+    const noRegionales = opciones.filter(op => {
+      const f = (DATA.flota || {})[op[0]];
+      return !f || f.fuselaje !== 'regional';
+    });
+    // Si la ruta SOLO tiene candidatos regionales (muy corta, ningún narrowbody real la
+    // cubre), no hay alternativa honesta: se deja la lista completa antes que no estimar.
+    if (noRegionales.length) candidatas = noRegionales;
+  }
+  if (paxPorVuelo == null || paxPorVuelo <= 0) return null;
+  for (const op of candidatas) {
+    if (op[1] >= paxPorVuelo) return op;
+  }
+  return candidatas[candidatas.length - 1];
+}
+
+// Resuelve avión y consumo de una ruta para una ocupación dada. Si no hay ocupación
+// (ruta manual, o mes sin dato de pasajeros) cae al avión por defecto que calculó el
+// servidor y que ya viene en el meta.
+function resolverAvion(metaEntry, paxPorVuelo) {
+  const fallback = {
+    avion: metaEntry[6], codigo: null, asientos: metaEntry[8],
+    consumoKg: metaEntry[10], consumoM3: metaEntry[11],
+    fuente: metaEntry[7], loadFactor: null, factor: 1, esReal: false, porDefecto: true,
+  };
+  const op = elegirOpcionAvion(metaEntry[12], paxPorVuelo);
+  if (!op) return fallback;
+
+  const [codigo, , kgBase, esReal] = op;
+  const ficha = (DATA.flota || {})[codigo];
+  if (!ficha) return fallback;
+
+  const { factor, lf } = ajustePorOcupacion(codigo, paxPorVuelo);
+  const kg = kgBase * factor;
+  return {
+    avion: ficha.nombre || codigo,
+    codigo,
+    asientos: ficha.asientos || null,
+    consumoKg: Math.round(kg * 10) / 10,
+    consumoM3: Math.round((kg / MODELO.kg_por_m3) * 1000) / 1000,
+    fuente: esReal ? 'Real (planilla de consumo YPF)' : 'Estimado (curva calibrada del tipo)',
+    loadFactor: lf,
+    factor,
+    esReal: !!esReal,
+    porDefecto: false,
+  };
+}
+
+// El consumo ya no se calcula por horas de vuelo: sale de la planilla real o de la curva
+// calibrada por tipo (ver avion_model.py). Lo unico que sobrevive de aca es la constante de
+// densidad, que se usa para pasar de kg a m3; el resto vive en MODELO y en resolverAvion().
+const JETA1_KG_PER_M3 = 804.0;
+
+let ocupAdjustEnabled = false;
+
+function toggleOcupAdjust() {
+  ocupAdjustEnabled = !ocupAdjustEnabled;
+  const btn = document.getElementById('rd-ocup-toggle');
+  btn.textContent = ocupAdjustEnabled ? 'Si' : 'No';
+  btn.classList.toggle('active', ocupAdjustEnabled);
+  recalcRouteDetail();
+}
+
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371.0;
+  const toRad = d => d * Math.PI / 180;
+  const p1 = toRad(lat1), p2 = toRad(lat2);
+  const dphi = toRad(lat2 - lat1), dlambda = toRad(lon2 - lon1);
+  const a = Math.sin(dphi / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dlambda / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+
+
+function geodesicPoints(lat1, lon1, lat2, lon2, n = 40) {
+  const toRad = deg => deg * Math.PI / 180, toDeg = r => r * 180 / Math.PI;
+  const phi1 = toRad(lat1), lam1 = toRad(lon1), phi2 = toRad(lat2), lam2 = toRad(lon2);
+  const d = 2 * Math.asin(Math.sqrt(Math.sin((phi2 - phi1) / 2) ** 2 +
+            Math.cos(phi1) * Math.cos(phi2) * Math.sin((lam2 - lam1) / 2) ** 2));
+  if (d === 0) return { lons: [lon1, lon2], lats: [lat1, lat2] };
+  const lons = [], lats = [];
+  for (let i = 0; i <= n; i++) {
+    const f = i / n;
+    const A = Math.sin((1 - f) * d) / Math.sin(d);
+    const B = Math.sin(f * d) / Math.sin(d);
+    const x = A * Math.cos(phi1) * Math.cos(lam1) + B * Math.cos(phi2) * Math.cos(lam2);
+    const y = A * Math.cos(phi1) * Math.sin(lam1) + B * Math.cos(phi2) * Math.sin(lam2);
+    const z = A * Math.sin(phi1) + B * Math.sin(phi2);
+    const phi = Math.atan2(z, Math.sqrt(x * x + y * y));
+    const lam = Math.atan2(y, x);
+    lats.push(toDeg(phi));
+    lons.push(toDeg(lam));
+  }
+  return { lons, lats };
+}
+
+function widthForValue(v, maxV) {
+  if (v == null || !maxV) return 0.3;
+  const t = Math.max(0, Math.min(1, v / maxV));
+  return 0.35 + t * 3.2;
+}
+
+function updateRouteList(candidates) {
+  const container = document.getElementById('route-list');
+  container.innerHTML = '';
+  candidates.forEach(r => {
+    const key = r.o + ' - ' + r.d;
+    const checked = !deselectedRoutes.has(key);
+    const row = document.createElement('div');
+    row.className = 'route-item';
+    row.dataset.label = key.toLowerCase();
+    row.dataset.o = r.o;
+    row.dataset.d = r.d;
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = checked;
+    cb.onchange = () => {
+      if (cb.checked) deselectedRoutes.delete(key);
+      else deselectedRoutes.add(key);
+      renderMapOnly();
+    };
+
+    const swatch = document.createElement('span');
+    swatch.className = 'swatch';
+    swatch.style.background = colorForRoute(key);
+
+    const label = document.createElement('label');
+    label.textContent = r.o + ' → ' + r.d;
+
+    row.appendChild(cb);
+    row.appendChild(swatch);
+    row.appendChild(label);
+    row.onclick = (e) => { if (e.target !== cb) { cb.checked = !cb.checked; cb.onchange(); } };
+    container.appendChild(row);
+  });
+}
+
+function selectAllRoutes(select) {
+  lastCandidates.forEach(r => {
+    const key = r.o + ' - ' + r.d;
+    if (select) deselectedRoutes.delete(key);
+    else deselectedRoutes.add(key);
+  });
+  updateRouteList(lastCandidates);
+  renderMapOnly();
+}
+
+function filterRouteList() {
+  const q = document.getElementById('routeSearch').value.toLowerCase();
+  document.querySelectorAll('#route-list .route-item').forEach(el => {
+    const matchesSearch = el.dataset.label.includes(q);
+    const matchesAirport = airportFilterMode === 'all'
+      || (airportFilterMode === 'custom' && (selectedAirports.has(el.dataset.o) || selectedAirports.has(el.dataset.d)));
+    el.style.display = (matchesSearch && matchesAirport) ? 'flex' : 'none';
+  });
+}
+
+function renderMapOnly() {
+  render(true);
+}
+
+// ---------- Route detail panel (click a route to open; swap aircraft to simulate consumption) ----------
+let currentRouteDetail = null; // { o, d, vuelos, pax, ocup, distanciaKm, avion, asientos }
+
+function openRouteDetail(routeKey) {
+  const route = lastCandidates.find(r => (r.o + ' - ' + r.d) === routeKey);
+  if (!route) return;
+  currentRouteDetail = route;
+
+  document.getElementById('route-detail-title').textContent = `${route.o} → ${route.d}`;
+  document.getElementById('rd-vuelos').textContent = route.vuelos.toLocaleString('es-AR');
+  document.getElementById('rd-pax').textContent = (route.pax || 0).toLocaleString('es-AR');
+  document.getElementById('rd-ocup').textContent = route.ocup != null ? `${route.ocup} pax/vuelo` : 'N/D';
+  document.getElementById('rd-dist').textContent = route.distanciaKm != null
+    ? `${route.distanciaKm.toLocaleString('es-AR')} km` : 'N/D';
+
+  const select = document.getElementById('rd-avion-select');
+  const flota = (DATA && DATA.flota) || {};
+  // El selector ahora se arma con la flota calibrada (flota.json), no con el catálogo del
+  // admin: es la misma lista que usa el modelo para asignar, así que simular con otro
+  // avión da un número comparable con el que el mapa muestra por defecto.
+  const codigos = Object.keys(flota)
+    .filter(c => flota[c].en_escalera && flota[c].b_kg_km != null)
+    .sort((a, b) => (flota[a].pax_vuelo_max - flota[b].pax_vuelo_max));
+  select.innerHTML = '';
+  codigos.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c;
+    opt.textContent = `${flota[c].nombre} (${flota[c].asientos} as.)`;
+    select.appendChild(opt);
+  });
+  if (route.avionCodigo && codigos.includes(route.avionCodigo)) {
+    select.value = route.avionCodigo;
+  } else if (codigos.length) {
+    select.value = codigos[0];
+  }
+
+  ocupAdjustEnabled = false;
+  const ocupToggle = document.getElementById('rd-ocup-toggle');
+  ocupToggle.textContent = 'No';
+  ocupToggle.classList.remove('active');
+  document.getElementById('rd-ocup-adjust-note').style.display = 'none';
+
+  document.getElementById('route-detail-panel').style.display = 'block';
+  onRouteDetailAircraftChange();
+}
+
+function closeRouteDetail() {
+  document.getElementById('route-detail-panel').style.display = 'none';
+  currentRouteDetail = null;
+}
+
+// ---------- Fuel sales panel (click an airport to open; vuelos e ingreso de combustible) ----------
+let currentFuelSalesData = null; // { aeropuerto, rows, llaa_list }
+let fuelSalesSort = { key: 'ingreso_usd', dir: 'desc' };
+const FUEL_SALES_TEXT_COLS = new Set(['vuelo', 'llaa', 'destino']);
+
+function selectedPeriods() {
+  // Cruza los años y meses actualmente tildados en el mapa -> lista de "YYYY-M"
+  const years = DATA.years.filter(y => selectedYears.has(y));
+  const months = availableMonths().filter(m => selectedMonths.has(m));
+  const periods = [];
+  years.forEach(y => {
+    months.forEach(m => {
+      const mesNum = DATA.month_order.indexOf(m) + 1;
+      if (mesNum > 0) periods.push(`${y}-${mesNum}`);
+    });
+  });
+  return periods;
+}
+
+async function openFuelSalesPanel(airportName) {
+  document.getElementById('fuel-sales-title').textContent = `Ventas de combustible — ${airportName}`;
+  document.getElementById('fuel-sales-overlay').style.display = 'flex';
+  document.getElementById('fuel-sales-tbody').innerHTML = '';
+  document.getElementById('fuel-sales-summary').textContent = 'Cargando...';
+  document.getElementById('fuel-sales-empty').style.display = 'none';
+  fuelSalesSort = { key: 'ingreso_usd', dir: 'desc' };
+
+  const params = new URLSearchParams();
+  params.append('aeropuerto', airportName);
+  selectedPeriods().forEach(p => params.append('p', p));
+
+  try {
+    const res = await fetch('/api/fuel_sales?' + params.toString());
+    const data = await res.json();
+    if (data.error) {
+      document.getElementById('fuel-sales-summary').textContent = 'Error: ' + data.error;
+      return;
+    }
+    currentFuelSalesData = data;
+    populateFuelSalesAirlineFilter(data.llaa_list);
+    fillFuelSalesTooltip(data);
+    renderFuelSalesTable();
+  } catch (err) {
+    document.getElementById('fuel-sales-summary').textContent = 'Error al cargar datos: ' + err;
+  }
+}
+
+function closeFuelSalesPanel() {
+  document.getElementById('fuel-sales-overlay').style.display = 'none';
+  currentFuelSalesData = null;
+}
+
+function populateFuelSalesAirlineFilter(llaaList) {
+  const select = document.getElementById('fuel-sales-airline-filter');
+  const prev = select.value;
+  select.innerHTML = '<option value="">Todas las aerolíneas</option>';
+  llaaList.forEach(llaa => {
+    const opt = document.createElement('option');
+    opt.value = llaa;
+    opt.textContent = llaa;
+    select.appendChild(opt);
+  });
+  if (llaaList.includes(prev)) select.value = prev;
+}
+
+// Resumen agregado del aeropuerto ENTERO (todas las filas, sin importar el filtro de
+// aerolínea activo en la tabla) — se muestra al pasar el mouse sobre el nombre del aeropuerto.
+function fillFuelSalesTooltip(data) {
+  const rows = data.rows;
+  const fuelAccess = !!data.fuel_access;
+  const totalDespachos = rows.reduce((s, r) => s + (r.cant_vuelos || 0), 0);
+  const totalVolumen = rows.reduce((s, r) => s + (r.volumen_m3 || 0), 0);
+  const volumenPorDespacho = totalDespachos > 0 ? totalVolumen / totalDespachos : 0;
+
+  document.getElementById('fst-vuelos').textContent = rows.length.toLocaleString('es-AR');
+  document.getElementById('fst-despachos').textContent = totalDespachos.toLocaleString('es-AR');
+  document.getElementById('fst-volumen').textContent = totalVolumen.toLocaleString('es-AR', {maximumFractionDigits: 1}) + ' m³';
+  document.getElementById('fst-volumen-despacho').textContent = volumenPorDespacho.toLocaleString('es-AR', {maximumFractionDigits: 3}) + ' m³';
+
+  if (fuelAccess) {
+    const totalIngreso = rows.reduce((s, r) => s + (r.ingreso_usd || 0), 0);
+    const precioProm = totalVolumen > 0 ? totalIngreso / (totalVolumen * 1000) : null;
+    const ingresoPorDespacho = totalDespachos > 0 ? totalIngreso / totalDespachos : 0;
+    document.getElementById('fst-ingreso').textContent = 'USD ' + totalIngreso.toLocaleString('es-AR', {maximumFractionDigits: 2});
+    document.getElementById('fst-precio').textContent = precioProm != null
+      ? 'USD/l ' + precioProm.toLocaleString('es-AR', {maximumFractionDigits: 6}) : 'N/D';
+    document.getElementById('fst-ingreso-despacho').textContent = 'USD ' + ingresoPorDespacho.toLocaleString('es-AR', {maximumFractionDigits: 2});
+  } else {
+    document.getElementById('fst-ingreso').textContent = '🔒 Bloqueado';
+    document.getElementById('fst-precio').textContent = '🔒 Bloqueado';
+    document.getElementById('fst-ingreso-despacho').textContent = '🔒 Bloqueado';
+  }
+}
+
+function sortFuelSales(key) {
+  if (fuelSalesSort.key === key) {
+    fuelSalesSort.dir = fuelSalesSort.dir === 'desc' ? 'asc' : 'desc';
+  } else {
+    // Columnas de texto arrancan ascendente (A→Z); las numéricas arrancan descendente (mayor primero)
+    fuelSalesSort = { key, dir: FUEL_SALES_TEXT_COLS.has(key) ? 'asc' : 'desc' };
+  }
+  renderFuelSalesTable();
+}
+
+function updateFuelSalesSortHeaders() {
+  document.querySelectorAll('#fuel-sales-table th').forEach(th => {
+    const arrow = th.querySelector('.sort-arrow');
+    if (th.dataset.key === fuelSalesSort.key) {
+      th.classList.add('sorted');
+      arrow.textContent = fuelSalesSort.dir === 'asc' ? '▲' : '▼';
+    } else {
+      th.classList.remove('sorted');
+      arrow.textContent = '';
+    }
+  });
+}
+
+function renderFuelSalesTable() {
+  if (!currentFuelSalesData) return;
+  const fuelAccess = !!currentFuelSalesData.fuel_access;
+  const filtro = document.getElementById('fuel-sales-airline-filter').value;
+  let rows = currentFuelSalesData.rows.filter(r => !filtro || r.llaa === filtro);
+
+  const LOCKED_KEYS = new Set(['precio_usd_l', 'ingreso_usd', 'ingreso_por_vuelo']);
+  const { key, dir } = fuelSalesSort;
+  const isText = FUEL_SALES_TEXT_COLS.has(key);
+  // Si la columna elegida está bloqueada y la sesión no desbloqueó, ordenamos por volumen en su lugar.
+  const effectiveKey = (LOCKED_KEYS.has(key) && !fuelAccess) ? 'volumen_m3' : key;
+  const effectiveIsText = FUEL_SALES_TEXT_COLS.has(effectiveKey);
+  rows = [...rows].sort((a, b) => {
+    let va = a[effectiveKey], vb = b[effectiveKey];
+    if (effectiveIsText) {
+      va = (va || '').toString().toLowerCase();
+      vb = (vb || '').toString().toLowerCase();
+      const cmp = va.localeCompare(vb);
+      return dir === 'asc' ? cmp : -cmp;
+    }
+    va = (va == null) ? -Infinity : va;
+    vb = (vb == null) ? -Infinity : vb;
+    return dir === 'asc' ? va - vb : vb - va;
+  });
+  updateFuelSalesSortHeaders();
+
+  const tbody = document.getElementById('fuel-sales-tbody');
+  tbody.innerHTML = '';
+  document.getElementById('fuel-sales-empty').style.display = rows.length ? 'none' : 'block';
+
+  rows.forEach(r => {
+    const tr = document.createElement('tr');
+    const precioCell = fuelAccess
+      ? (r.precio_usd_l != null ? r.precio_usd_l.toLocaleString('es-AR', {maximumFractionDigits: 6}) : 'N/D')
+      : '🔒';
+    const ingresoCell = fuelAccess
+      ? (r.ingreso_usd != null ? r.ingreso_usd.toLocaleString('es-AR', {maximumFractionDigits: 2}) : 'N/D')
+      : '🔒';
+    const ingresoPorVueloCell = fuelAccess
+      ? (r.ingreso_por_vuelo != null ? r.ingreso_por_vuelo.toLocaleString('es-AR', {maximumFractionDigits: 2}) : 'N/D')
+      : '🔒';
+    tr.innerHTML = `
+      <td>${r.vuelo}</td>
+      <td>${r.llaa || '—'}</td>
+      <td>${r.destino || '—'}</td>
+      <td>${r.cant_vuelos.toLocaleString('es-AR')}</td>
+      <td>${r.volumen_m3.toLocaleString('es-AR', {maximumFractionDigits: 3})}</td>
+      <td class="${fuelAccess ? '' : 'fuel-locked-cell'}" ${fuelAccess ? '' : 'onclick="promptFuelUnlock()"'}>${precioCell}</td>
+      <td class="${fuelAccess ? '' : 'fuel-locked-cell'}" ${fuelAccess ? '' : 'onclick="promptFuelUnlock()"'}>${ingresoCell}</td>
+      <td class="${fuelAccess ? '' : 'fuel-locked-cell'}" ${fuelAccess ? '' : 'onclick="promptFuelUnlock()"'}>${ingresoPorVueloCell}</td>
+      <td>${r.volumen_por_vuelo.toLocaleString('es-AR', {maximumFractionDigits: 3})}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  const totalVuelos = rows.reduce((s, r) => s + r.cant_vuelos, 0);
+  if (fuelAccess) {
+    const totalIngreso = rows.reduce((s, r) => s + (r.ingreso_usd || 0), 0);
+    document.getElementById('fuel-sales-summary').textContent =
+      `${rows.length} vuelo(s) · ${totalVuelos.toLocaleString('es-AR')} despachos · USD ${totalIngreso.toLocaleString('es-AR', {maximumFractionDigits: 2})}`;
+  } else {
+    document.getElementById('fuel-sales-summary').textContent =
+      `${rows.length} vuelo(s) · ${totalVuelos.toLocaleString('es-AR')} despachos · 🔒 Ingreso bloqueado`;
+  }
+}
+
+// Repuebla el selector de aerolínea según el avión elegido: siempre incluye
+// "Genérico (promedio)" primero, y debajo las aerolíneas con dato específico
+// para ese modelo (aerolineas_asientos.json). Si no hay ninguna, el select
+// queda solo con la opción genérica.
+function refreshAerolineaOptions(aircraftName, preferredAirline) {
+  const select = document.getElementById('rd-aerolinea-select');
+  const seatsByAirline = ((DATA && DATA.airline_seats) || {})[aircraftName] || {};
+  const airlineNames = Object.keys(seatsByAirline).sort();
+
+  select.innerHTML = '';
+  const generic = document.createElement('option');
+  generic.value = '';
+  generic.textContent = 'Genérico (promedio)';
+  select.appendChild(generic);
+
+  airlineNames.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    select.appendChild(opt);
+  });
+
+  select.disabled = airlineNames.length === 0;
+  select.value = (preferredAirline && airlineNames.includes(preferredAirline)) ? preferredAirline : '';
+}
+
+// Los asientos por aerolínea (aerolineas_asientos.json) están indexados por nombre genérico
+// ("Airbus A320", "Boeing 737"), mientras que la flota usa variantes ("Airbus A320ceo",
+// "Boeing 737-800"). Se busca la clave genérica que sea prefijo del nombre de la variante.
+function claveAerolineaSeats(nombreFlota) {
+  const seats = (DATA && DATA.airline_seats) || {};
+  if (seats[nombreFlota]) return nombreFlota;
+  let mejor = null;
+  for (const k of Object.keys(seats)) {
+    if (nombreFlota && nombreFlota.startsWith(k)) {
+      if (!mejor || k.length > mejor.length) mejor = k;
+    }
+  }
+  return mejor;
+}
+
+function onRouteDetailAircraftChange() {
+  if (!currentRouteDetail || !DATA || !DATA.flota) return;
+  const codigo = document.getElementById('rd-avion-select').value;
+  const nombre = (DATA.flota[codigo] || {}).nombre;
+  refreshAerolineaOptions(claveAerolineaSeats(nombre), currentRouteDetail.aerolinea);
+  recalcRouteDetail();
+}
+
+function onRouteDetailAerolineaChange() {
+  recalcRouteDetail();
+}
+
+function recalcRouteDetail() {
+  if (!currentRouteDetail || !DATA || !DATA.flota) return;
+  const codigo = document.getElementById('rd-avion-select').value;
+  const ficha = DATA.flota[codigo];
+  if (!ficha) return;
+
+  const claveSeats = claveAerolineaSeats(ficha.nombre);
+  const aerolineaSeleccionada = document.getElementById('rd-aerolinea-select').value;
+  const seatsByAirline = ((DATA && DATA.airline_seats) || {})[claveSeats] || {};
+  const overrideEntry = aerolineaSeleccionada ? seatsByAirline[aerolineaSeleccionada] : null;
+  const asientos = overrideEntry ? overrideEntry.asientos : ficha.asientos;
+
+  document.getElementById('rd-asientos').textContent =
+    (asientos != null) ? `${asientos.toLocaleString('es-AR')}${overrideEntry ? '' : ' (genérico)'}` : 'N/D';
+
+  const distKm = currentRouteDetail.distanciaKm;
+  if (distKm == null) {
+    document.getElementById('rd-duracion').textContent = 'N/D';
+    document.getElementById('rd-consumo').textContent = 'N/D (sin distancia)';
+    document.getElementById('rd-consumo-pax').textContent = 'N/D (sin distancia)';
+    return;
+  }
+
+  // Consumo base: si la planilla real tiene la celda (ruta, avión) se usa ese valor —
+  // viene en las opciones que mandó el servidor. Si no, la curva calibrada del tipo.
+  const opcion = (currentRouteDetail.opciones || []).find(o => o[0] === codigo);
+  let consumoBaseKg, esReal;
+  if (opcion) {
+    consumoBaseKg = opcion[2];
+    esReal = !!opcion[3];
+  } else {
+    consumoBaseKg = ((ficha.a_t || 0) + (ficha.b_kg_km * distKm / 1000)) * 1000;
+    esReal = false;
+  }
+
+  const velocidad = { regional: 800, narrow: 830, wide: 890, piston: 330 }[ficha.fuselaje] || 830;
+  document.getElementById('rd-duracion').textContent =
+    `${(0.35 + distKm / velocidad).toLocaleString('es-AR', {maximumFractionDigits: 2})} h`;
+
+  let finalConsumoKg = consumoBaseKg;
+  let denomPax = asientos;
+
+  const noteEl = document.getElementById('rd-ocup-adjust-note');
+  const noteValueEl = document.getElementById('rd-ocup-adjust-value');
+  const ocupReal = currentRouteDetail.ocup;
+
+  if (ocupAdjustEnabled) {
+    const adj = ajustePorOcupacion(codigo, ocupReal);
+    if (adj.lf != null) {
+      finalConsumoKg = consumoBaseKg * adj.factor;
+      denomPax = Math.max(1, ocupReal);
+      noteEl.style.display = 'flex';
+      noteValueEl.textContent =
+        `${(adj.lf * 100).toLocaleString('es-AR', {maximumFractionDigits: 1})}% ocupación → ` +
+        `x${adj.factor.toLocaleString('es-AR', {maximumFractionDigits: 3})} consumo`;
+    } else {
+      noteEl.style.display = 'flex';
+      noteValueEl.textContent = 'N/D (sin ocupación real o asientos)';
+    }
+  } else {
+    noteEl.style.display = 'none';
+  }
+
+  const finalConsumoM3 = finalConsumoKg / MODELO.kg_por_m3;
+  document.getElementById('rd-consumo').textContent =
+    `${finalConsumoKg.toLocaleString('es-AR', {maximumFractionDigits: 0})} kg ` +
+    `(${finalConsumoM3.toLocaleString('es-AR', {maximumFractionDigits: 2})} m³)` +
+    (esReal ? ' — dato real' : ' — estimado');
+
+  document.getElementById('rd-consumo-pax').textContent = (denomPax && denomPax > 0)
+    ? `${(finalConsumoKg / denomPax).toLocaleString('es-AR', {maximumFractionDigits: 1})} kg (${(finalConsumoM3 / denomPax).toLocaleString('es-AR', {maximumFractionDigits: 3})} m³)`
+    : 'N/D (sin asientos)';
+}
+
+function render(skipListRebuild) {
+  if (!DATA) return;
+  const years = DATA.years.filter(y => selectedYears.has(y));
+  const months = availableMonths().filter(m => selectedMonths.has(m));
+  const traces = [];
+  let totalVuelos = 0, totalPax = 0, nRoutes = 0;
+
+  const candidates = []; // all routes available for current type+period (unfiltered by user selection)
+  if (skipListRebuild) {
+    candidates.push(...lastCandidates);
+  } else {
+    for (const tipo of ['cabotaje', 'internacional']) {
+      if (!activeTypes[tipo]) continue;
+      const meta = DATA[tipo].meta;
+      // key: route index -> aggregated vuelos/pax across all selected years x months
+      const agg = new Map();
+      for (const year of years) {
+        for (const month of months) {
+          const ym = `${year}-${month}`;
+          const rows = DATA[tipo].data[ym] || [];
+          for (const [idx, vuelos, pax] of rows) {
+            if (!vuelos) continue;
+            const cur = agg.get(idx) || { vuelos: 0, pax: 0 };
+            cur.vuelos += vuelos;
+            cur.pax += (pax || 0);
+            agg.set(idx, cur);
+          }
+        }
+      }
+      for (const [idx, { vuelos, pax }] of agg) {
+        const [o, d, olat, olon, dlat, dlon, avion, avionFuente, asientos, distanciaKm, consumoKg, consumoM3] = meta[idx];
+        const ocup = (pax && vuelos) ? Math.round((pax / vuelos) * 10) / 10 : null;
+        // El avión y el consumo salen de la ocupación del período seleccionado, no del
+        // valor fijo del meta: una ruta con 70 pax/vuelo se resuelve con un E190 aunque
+        // en otro mes vuele con A320.
+        const av = resolverAvion(meta[idx], ocup);
+        candidates.push({ o, d, olat, olon, dlat, dlon, vuelos, pax, ocup, tipo,
+                           avion: av.avion, avionFuente: av.fuente, asientos: av.asientos,
+                           distanciaKm, consumoKg: av.consumoKg, consumoM3: av.consumoM3,
+                           avionCodigo: av.codigo, loadFactor: av.loadFactor,
+                           avionEsReal: av.esReal, opciones: meta[idx][12] || [] });
+      }
+    }
+    candidates.sort((a, b) => (a.o + a.d).localeCompare(b.o + b.d));
+    lastCandidates = candidates;
+    updateRouteList(candidates);
+  }
+
+  // Filtro por aeropuerto (dropdown, o click en un punto del mapa): oculta por completo las
+  // rutas ajenas — no es una atenuación, es un filtro real. 'all' = sin filtro (todo);
+  // 'none' = nada (ni rutas ni aeropuertos); 'custom' = solo lo que está en selectedAirports.
+  const airportFiltered = airportFilterMode === 'none'
+    ? []
+    : (airportFilterMode === 'all'
+        ? candidates
+        : candidates.filter(r => selectedAirports.has(r.o) || selectedAirports.has(r.d)));
+
+  // Líneas a dibujar: además del filtro por aeropuerto, respeta los checkboxes individuales
+  // de "Rutas". Si "Ninguna" está apretado, esto queda vacío mientras que los aeropuertos
+  // (más abajo) se siguen dibujando igual, ya que salen de airportFiltered, no de acá.
+  const visible = airportFiltered.filter(r => !deselectedRoutes.has(r.o + ' - ' + r.d));
+
+  const maxMetric = Math.max(1, ...visible.map(r => (r[activeMetric] != null ? r[activeMetric] : 0)));
+
+  for (const r of visible) {
+    totalVuelos += r.vuelos;
+    totalPax += (r.pax || 0);
+    nRoutes++;
+    const { lons, lats } = geodesicPoints(r.olat, r.olon, r.dlat, r.dlon);
+    const width = widthForValue(r[activeMetric], maxMetric);
+    const routeKey = r.o + ' - ' + r.d;
+    const routeColor = colorForRoute(routeKey);
+    const isDimmed = selectedRoutes.size > 0 && !selectedRoutes.has(routeKey);
+    traces.push({
+      type: 'scattergeo',
+      mode: 'lines',
+      lon: lons,
+      lat: lats,
+      line: { width: width, color: routeColor },
+      opacity: isDimmed ? 0.12 : 1,
+      hoverinfo: 'text',
+      text: `${r.o} → ${r.d}<br>Vuelos: ${r.vuelos.toLocaleString('es-AR')}<br>Pasajeros: ${(r.pax||0).toLocaleString('es-AR')}<br>Ocupación: ${r.ocup != null ? r.ocup : 'N/D'} pax/vuelo` +
+            (r.avion ? `<br>Avión asignado: ${r.avion} (${r.asientos||0} asientos)` +
+              (r.loadFactor != null ? ` — ${(r.loadFactor*100).toLocaleString('es-AR',{maximumFractionDigits:0})}% de ocupación` : '') +
+              `<br>Consumo est./vuelo: ${(r.consumoKg||0).toLocaleString('es-AR',{maximumFractionDigits:0})} kg (${(r.consumoM3||0).toLocaleString('es-AR',{maximumFractionDigits:2})} m³)` +
+              (r.asientos ? `<br>Consumo est./pax: ${(r.consumoKg/r.asientos).toLocaleString('es-AR', {maximumFractionDigits: 1})} kg` : '') +
+              `<br>Total del período: ${((r.consumoM3||0)*(r.vuelos||0)).toLocaleString('es-AR',{maximumFractionDigits:0})} m³` +
+              `<br><i>${r.avionEsReal ? 'Consumo real de planilla' : 'Consumo estimado por curva del tipo'}</i>`
+            : ''),
+      customdata: new Array(lons.length).fill(routeKey),
+      showlegend: false
+    });
+  }
+
+  // Node layer: red dots per airport/city, sized by total passengers through that airport (Table 11)
+  // Se muestran los aeropuertos de airportFiltered (respeta el filtro por aeropuerto elegido,
+  // pero NO los checkboxes de "Rutas" a la derecha) — así tildar "Ninguna" en Rutas apaga las
+  // líneas pero deja los puntos de los aeropuertos intactos.
+  const visibleNodeNames = new Set();
+  for (const r of airportFiltered) { visibleNodeNames.add(r.o); visibleNodeNames.add(r.d); }
+
+  // Aeropuertos sin ninguna ruta de pasajeros pero con datos de combustible cargados: no
+  // aparecen en airportFiltered (no son parte de ninguna ruta), así que se agregan acá aparte,
+  // respetando el mismo modo de filtro (all/none/custom) que el resto de los aeropuertos.
+  const isolatedNames = DATA.isolated_airports || [];
+  if (airportFilterMode === 'all') {
+    isolatedNames.forEach(n => visibleNodeNames.add(n));
+    // Los aeropuertos argentinos se muestran SIEMPRE, tengan o no ruta/volumen en el
+    // período actual — si no, un aeropuerto real desaparecía del mapa apenas ese mes en
+    // particular no tuvo vuelos ni combustible, y "no voló este mes" no es lo mismo que
+    // "no existe". DATA.nodes.meta = [nombre, lat, lon, tieneDatos, esArgentina].
+    DATA.nodes.meta.forEach(n => { if (n[4]) visibleNodeNames.add(n[0]); });
+  } else if (airportFilterMode === 'custom') {
+    // Mismo criterio que en "Todos": cualquier aeropuerto que el usuario haya tildado a
+    // mano tiene que verse SIEMPRE, tenga o no ruta/volumen ese período — incluido tildar
+    // "Argentina (todos los del país)" entero, que es justamente una selección personalizada
+    // con los ~59 aeropuertos argentinos adentro. Antes acá solo se agregaban los aislados
+    // (solo combustible) que estuvieran tildados; un aeropuerto tildado sin ninguna ruta ni
+    // combustible ese mes en particular (ej. julio, sin Excel de ANAC subido todavía)
+    // desaparecía del mapa aunque estuviera marcado en la lista.
+    selectedAirports.forEach(n => visibleNodeNames.add(n));
+  }
+
+  const nodeMeta = DATA.nodes.meta; // [name, lat, lon, hasData]
+  const nodePax = {};
+  for (const year of years) {
+    for (const month of months) {
+      const ym = `${year}-${month}`;
+      const nodeRows = DATA.nodes.data[ym] || []; // [nodeIdx, paxTotal]
+      for (const [idx, pax] of nodeRows) {
+        nodePax[idx] = (nodePax[idx] || 0) + (pax || 0);
+      }
+    }
+  }
+  const maxNodePax = Math.max(1, ...Object.values(nodePax));
+
+  // Combustible agregado por nodo para el período actual (año/mes tildados), para el hover
+  // directo sobre el punto del mapa sin necesidad de abrir el panel.
+  const nodeFuel = {}; // idx -> { vuelosDistintos, despachos, volumen, ingreso }
+  for (const year of years) {
+    for (const month of months) {
+      const ym = `${year}-${month}`;
+      const rows = (DATA.fuel_nodes && DATA.fuel_nodes[ym]) || []; // [idx, vuelosDistintos, despachos, volumen, ingreso]
+      for (const [idx, vuelosDistintos, despachos, volumen, ingreso] of rows) {
+        const cur = nodeFuel[idx] || { vuelosDistintos: 0, despachos: 0, volumen: 0, ingreso: 0 };
+        cur.vuelosDistintos += vuelosDistintos || 0;
+        cur.despachos += despachos || 0;
+        cur.volumen += volumen || 0;
+        cur.ingreso += ingreso || 0;
+        nodeFuel[idx] = cur;
+      }
+    }
+  }
+
+  function fuelHoverLines(idx) {
+    const f = nodeFuel[idx];
+    if (!f || !f.despachos) return '';
+    const precioProm = f.volumen > 0 ? f.ingreso / (f.volumen * 1000) : null;
+    const ingresoPorDespacho = f.ingreso / f.despachos;
+    const volumenPorDespacho = f.volumen / f.despachos;
+    return `<br>— Combustible —` +
+      `<br>Vuelos: ${f.vuelosDistintos.toLocaleString('es-AR')} · Despachos: ${f.despachos.toLocaleString('es-AR')} · Volumen: ${f.volumen.toLocaleString('es-AR', {maximumFractionDigits: 1})} m³` +
+      `<br>Ingreso: USD ${f.ingreso.toLocaleString('es-AR', {maximumFractionDigits: 2})}` +
+      (precioProm != null ? ` · Precio prom: ${precioProm.toLocaleString('es-AR', {maximumFractionDigits: 6})} USD/l` : '') +
+      `<br>Ingreso/despacho: USD ${ingresoPorDespacho.toLocaleString('es-AR', {maximumFractionDigits: 2})}` +
+      ` · Volumen/despacho: ${volumenPorDespacho.toLocaleString('es-AR', {maximumFractionDigits: 3})} m³`;
+  }
+
+  const nodeLons = [], nodeLats = [], nodeSizes = [], nodeTexts = [], nodeCustomdata = [];
+  nodeMeta.forEach((n, idx) => {
+    const [name, lat, lon, hasData] = n;
+    if (!visibleNodeNames.has(name)) return;
+    nodeLons.push(lon);
+    nodeLats.push(lat);
+    nodeCustomdata.push(name);
+    const fuelLines = fuelHoverLines(idx);
+    if (hasData && nodePax[idx] != null) {
+      const t = Math.max(0, Math.min(1, nodePax[idx] / maxNodePax));
+      nodeSizes.push(5 + t * 28);
+      nodeTexts.push(`${name}<br>Pasajeros totales: ${nodePax[idx].toLocaleString('es-AR')}${fuelLines}`);
+    } else {
+      nodeSizes.push(6);
+      nodeTexts.push(`${name}<br>(sin datos de pasajeros totales por aeropuerto)${fuelLines}`);
+    }
+  });
+
+  traces.push({
+    type: 'scattergeo',
+    mode: 'markers',
+    lon: nodeLons,
+    lat: nodeLats,
+    marker: { size: nodeSizes, color: 'rgba(230,30,30,0.85)', line: { width: 0.5, color: '#fff' } },
+    hoverinfo: 'text',
+    text: nodeTexts,
+    customdata: nodeCustomdata,
+    showlegend: false
+  });
+
+  // Dynamically compute lon/lat range so the map fills the viewport edge-to-edge,
+  // regardless of screen aspect ratio (natural earth projection ~2:1 lon:lat visual ratio)
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const aspect = vw / vh;
+  const latSpan = 130; // degrees of latitude shown, fixed
+  const lonSpan = Math.min(340, latSpan * aspect * 1.75);
+  const lonCenter = -30, latCenter = -5;
+
+  const layout = {
+    geo: {
+      projection: { type: 'natural earth' },
+      showland: true, landcolor: '#1a2144',
+      showocean: true, oceancolor: '#0b1020',
+      showcountries: true, countrycolor: '#3a4470',
+      showcoastlines: true, coastlinecolor: '#3a4470',
+      bgcolor: '#0b1020',
+      domain: { x: [0, 1], y: [0, 1] },
+      lataxis: { range: [latCenter - latSpan/2, latCenter + latSpan/2] },
+      lonaxis: { range: [lonCenter - lonSpan/2, lonCenter + lonSpan/2] },
+      uirevision: 'keep-view'
+    },
+    uirevision: 'keep-view',
+    paper_bgcolor: '#0b1020',
+    plot_bgcolor: '#0b1020',
+    margin: { t: 0, b: 0, l: 0, r: 0 },
+    font: { color: '#eee' },
+    autosize: true,
+    hoverlabel: {
+      bgcolor: 'rgba(25,30,55,0.95)',
+      bordercolor: '#4c7cf0',
+      font: { color: '#ffffff', size: 13, family: 'Arial Black, Arial, sans-serif' }
+    },
+    modebar: {
+      color: '#ffffff',
+      activecolor: '#4c7cf0',
+      bgcolor: 'rgba(16,22,46,0.85)'
+    }
+  };
+
+  Plotly.react('map', traces, layout, { responsive: true, displaylogo: false, displayModeBar: true, doubleClick: false })
+    .then(gd => {
+      if (!gd._clickHandlerAttached) {
+        gd._clickHandlerAttached = true;
+        gd.on('plotly_click', (evt) => {
+          plotlyClickJustFired = true;
+          const pt = evt.points && evt.points[0];
+          if (!pt) return;
+          const ctrl = evt.event && (evt.event.ctrlKey || evt.event.metaKey);
+
+          if (pt.data.mode === 'markers') {
+            // Se tocó un aeropuerto/ciudad (punto rojo)
+            const airportName = pt.customdata;
+            if (!airportName) return;
+            if (ctrl) {
+              // Suma o saca este aeropuerto del conjunto ya seleccionado (atajo multi-selección)
+              ensureCustomAirportMode();
+              if (selectedAirports.has(airportName)) selectedAirports.delete(airportName);
+              else selectedAirports.add(airportName);
+              applyAirportSelection();
+            } else {
+              showAirportChoiceMenu(airportName, evt.event);
+            }
+            return;
+          }
+
+          const key = pt.customdata;
+          if (!key) return; // clicked something without a route key
+          if (ctrl) {
+            if (selectedRoutes.has(key)) selectedRoutes.delete(key);
+            else selectedRoutes.add(key);
+          } else {
+            selectedRoutes = new Set([key]);
+            openRouteDetail(key);
+          }
+          renderMapOnly();
+        });
+      }
+    });
+
+  buildAirportDropdown();
+  updateAirportBtnLabel();
+
+  const yearsLabel = years.length === 1 ? years[0] : (years.length + ' años (' + years.join(', ') + ')');
+  const monthsLabel = months.length === 1 ? months[0] : (months.length + ' meses (' + months.join(', ') + ')');
+  const aggregateStats =
+    `${monthsLabel} ${yearsLabel} — ${nRoutes} rutas · ${totalVuelos.toLocaleString('es-AR')} vuelos · ${totalPax.toLocaleString('es-AR')} pasajeros · grosor = ${METRIC_LABELS[activeMetric]}`;
+
+  if (airportFilterMode === 'none') {
+    document.getElementById('stats').textContent = 'Ningún aeropuerto seleccionado (elegí uno o más, o "Todos")';
+  } else if (airportFilterMode === 'custom' && selectedAirports.size > 0) {
+    // Resumen agregado: solo totales, sin el detalle ruta por ruta
+    const rows = visible.filter(r => selectedAirports.has(r.o) || selectedAirports.has(r.d));
+    const nVuelos = rows.reduce((s, r) => s + (r.vuelos || 0), 0);
+    const nPax = rows.reduce((s, r) => s + (r.pax || 0), 0);
+    const nM3 = rows.reduce((s, r) => {
+      // Si AMBOS extremos de la ruta están entre los aeropuertos seleccionados, la ruta completa
+      // (ida y vuelta) se carga en el grupo — no hace falta dividir por 2 porque las dos puntas
+      // de carga de combustible caen dentro del conjunto elegido.
+      const bothIn = selectedAirports.has(r.o) && selectedAirports.has(r.d);
+      const factor = bothIn ? 1 : 0.5;
+      return s + (r.consumoM3 || 0) * (r.vuelos || 0) * factor;
+    }, 0);
+    const label = selectedAirports.size === 1
+      ? [...selectedAirports][0]
+      : `${selectedAirports.size} aeropuertos seleccionados`;
+    document.getElementById('stats').textContent =
+      `${label} — ${rows.length} rutas · ${nVuelos.toLocaleString('es-AR')} vuelos · ${nPax.toLocaleString('es-AR')} pasajeros · ${nM3.toLocaleString('es-AR', {maximumFractionDigits: 1})} m³ combustible estimado`;
+  } else {
+    document.getElementById('stats').textContent = aggregateStats;
+  }
+
+  chequearFuelSalesSinMatch(years, months);
+}
+
+// Aviso silencioso: si el período que se está mirando (un solo año + un solo mes, el caso
+// de uso típico) tiene despachos de combustible cuyo AEROPUERTO no matcheó con ninguno
+// conocido al subir el Excel, esas filas quedaron guardadas pero son invisibles en el mapa
+// — nunca se dibujan ni suman a ningún aeropuerto. Sin este aviso, "no veo todos los
+// aeropuertos de julio" es indistinguible de "no se subió nada de julio".
+let fuelDiagTimer = null;
+let fuelDiagUltimoPeriodo = null;
+function chequearFuelSalesSinMatch(years, months) {
+  const warn = document.getElementById('fuel-diag-warning');
+  if (!warn) return;
+  // Solo tiene sentido con un período puntual: con varios años/meses tildados a la vez,
+  // "los registros sin match de este período" deja de ser una pregunta con una respuesta
+  // clara y hay que ir a /admin a mirar el panorama completo.
+  if (years.length !== 1 || months.length !== 1) {
+    warn.style.display = 'none';
+    return;
+  }
+  const anio = years[0];
+  const mes = DATA.month_order.indexOf(months[0]) + 1;
+  const periodo = `${anio}-${mes}`;
+  if (periodo === fuelDiagUltimoPeriodo) return;  // ya se chequeó este período
+  fuelDiagUltimoPeriodo = periodo;
+
+  clearTimeout(fuelDiagTimer);
+  fuelDiagTimer = setTimeout(async () => {
+    try {
+      const r = await fetch(`/api/fuel_sales_diagnostico?anio=${anio}&mes=${mes}`);
+      const d = await r.json();
+      if (d.error || !d.total_registros_sin_match) {
+        warn.style.display = 'none';
+        return;
+      }
+      const nombres = d.aeropuertos_sin_match.map(a => a.aeropuerto).join(', ');
+      warn.innerHTML =
+        `⚠ ${d.total_registros_sin_match} registro(s) de combustible de ${months[0]} ${anio} ` +
+        `(${d.total_volumen_sin_match_m3.toLocaleString('es-AR', {maximumFractionDigits: 1})} m³) ` +
+        `no coinciden con ningún aeropuerto conocido: <b>${nombres}</b>. ` +
+        `Se subieron bien, pero no van a aparecer en el mapa hasta agregarles un alias. ` +
+        `Click para abrir /admin →`;
+      warn.style.display = 'block';
+    } catch (e) { /* si falla el chequeo, no romper el mapa por esto */ }
+  }, 400);
+}
+
+let plotlyClickJustFired = false;
+// Bloquea el reset de vista al doble click. El flag de config "doubleClick" de Plotly no cubre
+// los mapas tipo "geo" -- así que directamente se intercepta el evento en fase de captura,
+// antes de que llegue al manejador interno de Plotly que resetea la proyección.
+document.getElementById('map').addEventListener('dblclick', (e) => {
+  e.stopPropagation();
+  e.preventDefault();
+}, true);
+
+document.getElementById('map').addEventListener('click', () => {
+  setTimeout(() => {
+    // Tocar el mapa en blanco solo limpia el resaltado de una ruta clickeada individualmente.
+    // El filtro de aeropuerto (selectedAirports/airportFilterMode) queda como está hasta que
+    // el usuario lo cambie explícitamente (dropdown, menú del aeropuerto, o "Todos"/"Ninguno").
+    if (!plotlyClickJustFired && selectedRoutes.size > 0) {
+      selectedRoutes.clear();
+      renderMapOnly();
+    }
+    plotlyClickJustFired = false;
+  }, 0);
+});
+
+window.addEventListener('resize', () => render());
+
+function selectAllMonths() {
+  selectedMonths = new Set(availableMonths());
+  buildMonthDropdown();
+  updateMonthBtnLabel();
+  render();
+}
+</script>
+
+<a id="admin-link" href="/admin" style="position: fixed; bottom: 12px; font-size: 11px; color: #9aa4c7; background: rgba(16,22,46,0.88); backdrop-filter: blur(6px); border: 1px solid #2a3358; border-radius: 8px; padding: 6px 12px; text-decoration: none; visibility: hidden;">
+  ⚙ Admin
+</a>
+
+<a id="proyecciones-link" href="/proyecciones" style="position: fixed; bottom: 12px; font-size: 11px; color: #ffd9a0; background: rgba(16,22,46,0.88); backdrop-filter: blur(6px); border: 1px solid #6b551f; border-radius: 8px; padding: 6px 12px; text-decoration: none; visibility: hidden;">
+  📈 Proyecciones
+</a>
+
+<a id="aerolineas-link" href="/aerolineas" style="position: fixed; bottom: 12px; font-size: 11px; color: #9aa4c7; background: rgba(16,22,46,0.88); backdrop-filter: blur(6px); border: 1px solid #2a3358; border-radius: 8px; padding: 6px 12px; text-decoration: none; visibility: hidden;">
+  📊 Aerolíneas
+</a>
+
+<a id="logout-link" href="/logout" style="position: fixed; bottom: 12px; font-size: 11px; color: #9aa4c7; background: rgba(16,22,46,0.88); backdrop-filter: blur(6px); border: 1px solid #2a3358; border-radius: 8px; padding: 6px 12px; text-decoration: none; visibility: hidden;">
+  ⏻ Salir
+</a>
+
+<button id="unlock-fuel-btn" style="position: fixed; bottom: 12px; font-size: 11px; color: #9aa4c7; background: rgba(16,22,46,0.88); backdrop-filter: blur(6px); border: 1px solid #2a3358; border-radius: 8px; padding: 6px 12px; visibility: hidden; cursor: pointer; margin: 0;">
+  🔒 Desbloquear datos
+</button>
+
+<div id="fuel-unlock-overlay" onclick="if(event.target===this) closeFuelUnlockModal()">
+  <div id="fuel-unlock-modal">
+    <div id="fuel-unlock-title">Desbloquear datos de combustible</div>
+    <input type="password" id="fuel-unlock-password" placeholder="Contraseña">
+    <div id="fuel-unlock-error"></div>
+    <button id="fuel-unlock-submit">Desbloquear</button>
+  </div>
+</div>
+
+<div id="credit" style="position: fixed; bottom: 12px; right: 12px; font-size: 11px; color: #9aa4c7; background: rgba(16,22,46,0.88); backdrop-filter: blur(6px); border: 1px solid #2a3358; border-radius: 8px; padding: 6px 12px;">
+  Desarrollado por Francisco Luis Noguera para YPF Aviación
+</div>
+
+<script>
+  // Encadenar de derecha a izquierda: Crédito -> Proyecciones -> Aerolíneas -> Admin -> Salir,
+  // cada uno usando el ancho real del anterior (varía según fuente/zoom) en vez de valores
+  // fijos a ojo.
+  function positionAdminLink() {
+    const credit = document.getElementById('credit');
+    const proyeccionesLink = document.getElementById('proyecciones-link');
+    const aerolineasLink = document.getElementById('aerolineas-link');
+    const adminLink = document.getElementById('admin-link');
+    const logoutLink = document.getElementById('logout-link');
+    const unlockBtn = document.getElementById('unlock-fuel-btn');
+    if (!credit || !proyeccionesLink || !aerolineasLink || !adminLink || !logoutLink || !unlockBtn) return;
+
+    const creditWidth = credit.getBoundingClientRect().width;
+    const proyeccionesRight = 12 + creditWidth + 8;
+    proyeccionesLink.style.right = proyeccionesRight + 'px';
+    proyeccionesLink.style.visibility = 'visible';
+
+    const proyeccionesWidth = proyeccionesLink.getBoundingClientRect().width;
+    const aerolineasRight = proyeccionesRight + proyeccionesWidth + 8;
+    aerolineasLink.style.right = aerolineasRight + 'px';
+    aerolineasLink.style.visibility = 'visible';
+
+    const aerolineasWidth = aerolineasLink.getBoundingClientRect().width;
+    const adminRight = aerolineasRight + aerolineasWidth + 8;
+    adminLink.style.right = adminRight + 'px';
+    adminLink.style.visibility = 'visible';
+
+    const adminWidth = adminLink.getBoundingClientRect().width;
+    const logoutRight = adminRight + adminWidth + 8;
+    logoutLink.style.right = logoutRight + 'px';
+    logoutLink.style.visibility = 'visible';
+
+    const logoutWidth = logoutLink.getBoundingClientRect().width;
+    unlockBtn.style.right = (logoutRight + logoutWidth + 8) + 'px';
+    unlockBtn.style.visibility = 'visible';
+  }
+  window.addEventListener('load', positionAdminLink);
+  window.addEventListener('resize', positionAdminLink);
+
+  // ---------- Segunda capa de contraseña: desbloquear datos de combustible ----------
+  function updateUnlockFuelBtn() {
+    const btn = document.getElementById('unlock-fuel-btn');
+    if (!btn) return;
+    if (fuelAccessUnlocked) {
+      btn.textContent = '🔓 Datos desbloqueados';
+      btn.disabled = true;
+      btn.style.cursor = 'default';
+      btn.style.opacity = '0.7';
+    } else {
+      btn.textContent = '🔒 Desbloquear datos';
+      btn.disabled = false;
+      btn.style.cursor = 'pointer';
+      btn.style.opacity = '1';
+    }
+    positionAdminLink();
+  }
+  updateUnlockFuelBtn(); // aplica el estado ya conocido (por si /api/data ya había resuelto fuel_access)
+
+  function promptFuelUnlock() {
+    if (fuelAccessUnlocked) return;
+    document.getElementById('fuel-unlock-password').value = '';
+    document.getElementById('fuel-unlock-error').textContent = '';
+    document.getElementById('fuel-unlock-overlay').classList.add('show');
+    document.getElementById('fuel-unlock-password').focus();
+  }
+  window.promptFuelUnlock = promptFuelUnlock;
+
+  document.getElementById('unlock-fuel-btn').addEventListener('click', promptFuelUnlock);
+
+  function closeFuelUnlockModal() {
+    document.getElementById('fuel-unlock-overlay').classList.remove('show');
+  }
+
+  async function submitFuelUnlock() {
+    const password = document.getElementById('fuel-unlock-password').value;
+    const errEl = document.getElementById('fuel-unlock-error');
+    errEl.textContent = '';
+    if (!password) { errEl.textContent = 'Ingresá una contraseña.'; return; }
+    try {
+      const res = await fetch('/fuel_login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'password=' + encodeURIComponent(password),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        errEl.textContent = data.error || 'Contraseña incorrecta.';
+        return;
+      }
+      fuelAccessUnlocked = true;
+      closeFuelUnlockModal();
+      updateUnlockFuelBtn();
+      // Recarga solo los datos (no la página) para que el hover del mapa y el tooltip del
+      // desplegable ya muestren combustible, sin perder año/mes/filtros que el usuario eligió.
+      try {
+        const dataRes = await fetch('/api/data');
+        DATA = await dataRes.json();
+        render();
+      } catch (err) { /* si falla el refresh, el próximo cambio de filtro igual va a traer los datos nuevos */ }
+    } catch (err) {
+      errEl.textContent = 'Error: ' + err;
+    }
+  }
+
+  document.getElementById('fuel-unlock-submit').addEventListener('click', submitFuelUnlock);
+  document.getElementById('fuel-unlock-password').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') submitFuelUnlock();
+  });
+</script>
+
+</body>
+</html>
+
