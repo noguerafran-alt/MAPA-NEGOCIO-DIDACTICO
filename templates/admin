@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Admin — Rutas Aéreas Argentinas</title>
+<style>
+  body { font-family: Arial, sans-serif; background: #0b1020; color: #eee; margin: 0; padding: 30px; }
+  .wrap { max-width: 780px; margin: 0 auto; }
+  h1 { font-size: 20px; }
+  .card { background: #10162e; border: 1px solid #2a3358; border-radius: 12px; padding: 20px 24px; margin-bottom: 20px; }
+  #drop { border: 2px dashed #3a4470; border-radius: 10px; padding: 30px; text-align: center; cursor: pointer; }
+  #drop.dragover { border-color: #4c7cf0; background: rgba(76,124,240,0.08); }
+  input[type=file] { display: none; }
+  button { padding: 10px 20px; border-radius: 6px; border: none; background: #4c7cf0; color: #fff;
+           font-weight: bold; cursor: pointer; margin-top: 14px; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  #fileList { margin-top: 10px; font-size: 13px; color: #9aa4c7; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #2a3358; }
+  th { color: #9aa4c7; font-weight: normal; }
+  .stat { display: inline-block; margin-right: 24px; }
+  .stat b { font-size: 20px; display: block; }
+  #result { white-space: pre-wrap; font-size: 13px; background: #0b1020; padding: 12px; border-radius: 8px;
+            margin-top: 14px; max-height: 240px; overflow-y: auto; display: none; }
+  a.logout { color: #9aa4c7; font-size: 12px; float: right; }
+  a.back { color: #9aa4c7; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="/admin/logout" class="logout">Cerrar sesión</a>
+  <h1>📊 Administración — Rutas Aéreas Argentinas</h1>
+  <p><a href="/" class="back">← Ver el mapa</a></p>
+
+  <div class="card">
+    <div class="stat"><b>{{ stats.routes }}</b>Filas ruta×mes</div>
+    <div class="stat"><b>{{ stats.airports_monthly }}</b>Filas aeropuerto×mes</div>
+    <div class="stat"><b>{{ stats.airports_known }}</b>Aeropuertos con coordenadas</div>
+    <div class="stat"><b>{{ stats.manual_routes }}</b>Rutas manuales</div>
+  </div>
+
+  <div class="card">
+    <h3>Subir nuevo Excel de ANAC (formato "series históricas", hoja "OUT")</h3>
+    <p style="color:#9aa4c7; font-size:13px;">
+      Podés subir uno o varios archivos a la vez. Los meses/años que ya existen se
+      actualizan (se pisan con el valor nuevo); los que no existen se agregan. Nada se borra.
+    </p>
+    <div id="drop">
+      <div>Arrastrá el o los archivos .xlsx acá, o hacé click para elegirlos</div>
+      <input type="file" id="fileInput" accept=".xlsx" multiple>
+    </div>
+    <div id="fileList"></div>
+    <button id="uploadBtn" disabled>Subir y actualizar base de datos</button>
+    <div id="result"></div>
+  </div>
+
+  <div class="card">
+    <h3>Informe Mensual de ANAC — Aerolíneas (PDF)</h3>
+    <p style="color:#9aa4c7; font-size:13px;">
+      Subí el PDF del Informe Mensual de ANAC. Se extrae automáticamente la tabla
+      "Vuelos [#], Pax [000], Ocupación y Mercado x Aerolínea" de cabotaje e
+      internacional — <b>los últimos 12 meses que trae cada informe</b>, no solo el
+      mes actual, así se autocorrige si un mes anterior venía provisorio. Volver a
+      subir un informe ya cargado pisa los valores existentes, no duplica.
+    </p>
+    <div id="dropAerolineas" style="border:2px dashed #3a4470; border-radius:10px; padding:24px;
+         text-align:center; cursor:pointer;">
+      Arrastrá el PDF del informe acá, o hacé click para elegirlo
+      <input type="file" id="fileAerolineas" accept=".pdf" style="display:none">
+    </div>
+    <div id="fileAerolineasName" style="margin-top:8px; font-size:13px; color:#9aa4c7;"></div>
+    <button id="uploadAerolineasBtn" disabled>Subir y procesar</button>
+    <a href="/aerolineas" style="margin-left:10px; color:#4c7cf0; font-size:13px;">Ver datos cargados →</a>
+    <div id="resultAerolineas" style="white-space:pre-wrap; font-size:13px; background:#0b1020; padding:12px;
+         border-radius:8px; margin-top:14px; max-height:200px; overflow-y:auto; display:none;"></div>
+
+    {% if airline_logs %}
+    <table style="margin-top:18px;">
+      <tr><th>Fecha</th><th>Archivo</th><th>Insertados</th><th>Actualizados</th><th>Avisos</th></tr>
+      {% for log in airline_logs %}
+      <tr>
+        <td>{{ log.uploaded_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td>{{ log.filename }}</td>
+        <td>{{ log.registros_insertados }}</td>
+        <td>{{ log.registros_actualizados }}</td>
+        <td style="color:#e0a03f;">{{ log.warnings or '' }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h3>Ventas de combustible por vuelo (Excel — hoja "Resumen")</h3>
+    <p style="color:#9aa4c7; font-size:13px;">
+      Subí el Excel con la hoja <b>"Resumen"</b> generada por la macro (columnas VUELO,
+      CANT VUELOS, AEROPUERTO, VOLUMEN, LLAA, DESTINO, MES, AÑO, PRECIO USD/L, INGRESO).
+      Se usa para mostrar la lista de vuelos e ingresos al hacer click sobre un aeropuerto
+      en el mapa. Volver a subir el mismo vuelo/aeropuerto/aerolínea/mes pisa el valor
+      existente, no duplica.
+    </p>
+    <div id="dropFuelSales" style="border:2px dashed #3a4470; border-radius:10px; padding:24px;
+         text-align:center; cursor:pointer;">
+      Arrastrá el Excel acá, o hacé click para elegirlo
+      <input type="file" id="fileFuelSales" accept=".xlsx,.xlsm" style="display:none">
+    </div>
+    <div id="fileFuelSalesName" style="margin-top:8px; font-size:13px; color:#9aa4c7;"></div>
+    <button id="uploadFuelSalesBtn" disabled>Subir y procesar</button>
+    <div id="resultFuelSales" style="white-space:pre-wrap; font-size:13px; background:#0b1020; padding:12px;
+         border-radius:8px; margin-top:14px; max-height:200px; overflow-y:auto; display:none;"></div>
+
+    {% if fuel_sale_logs %}
+    <table style="margin-top:18px;">
+      <tr><th>Fecha</th><th>Archivo</th><th>Período</th><th>Insertados</th><th>Actualizados</th><th>Avisos</th></tr>
+      {% for log in fuel_sale_logs %}
+      <tr>
+        <td>{{ log.uploaded_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td>{{ log.filename }}</td>
+        <td>{{ '%02d/%s' | format(log.mes, log.anio) if log.mes and log.anio else '—' }}</td>
+        <td>{{ log.registros_insertados }}</td>
+        <td>{{ log.registros_actualizados }}</td>
+        <td style="color:#e0a03f;">{{ log.warnings or '' }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% endif %}
+
+    <div style="margin-top:22px; padding-top:16px; border-top:1px solid #3a2020;">
+      <p style="color:#e08a8a; font-size:12px; margin-bottom:8px;">
+        Zona de riesgo — borra TODOS los registros de ventas de combustible de la base
+        (Neon), no solo los de un archivo puntual. Usalo antes de cargar un archivo con
+        precios corregidos de cero, para no dejar mezclados datos viejos y nuevos del mismo
+        período.
+      </p>
+      <button id="borrarFuelSalesBtn" style="background:#7a2030; border-color:#a53a4a;">
+        Borrar TODOS los datos de combustible
+      </button>
+      <div id="resultBorrarFuelSales" style="white-space:pre-wrap; font-size:13px; background:#0b1020; padding:12px;
+           border-radius:8px; margin-top:14px; display:none;"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Archivos (carga / descarga momentánea)</h3>
+    <p style="color:#9aa4c7; font-size:13px;">
+      Subí cualquier CSV, TXT o Excel acá solo para guardarlo y poder bajarlo después desde
+      otra máquina — no se procesa ni se lee, es un simple guardado. Se almacena en la base
+      de datos (Neon), no en el disco de Render, así que sobrevive a un redeploy. Pensado
+      para uso momentáneo: subís, bajás cuando necesitás, y después lo borrás.
+    </p>
+    <div id="dropArchivos" style="border:2px dashed #3a4470; border-radius:10px; padding:24px;
+         text-align:center; cursor:pointer;">
+      Arrastrá archivos acá, o hacé click para elegirlos (.csv, .txt, .xlsx, .xlsm)
+      <input type="file" id="fileArchivos" accept=".csv,.txt,.xlsx,.xlsm" multiple style="display:none">
+    </div>
+    <div id="fileArchivosNames" style="margin-top:8px; font-size:13px; color:#9aa4c7;"></div>
+    <button id="uploadArchivosBtn" disabled>Subir</button>
+    <div id="resultArchivos" style="white-space:pre-wrap; font-size:13px; background:#0b1020; padding:12px;
+         border-radius:8px; margin-top:14px; max-height:200px; overflow-y:auto; display:none;"></div>
+
+    <table style="margin-top:18px;">
+      <tr><th>Archivo</th><th>Tamaño</th><th>Subido</th><th></th></tr>
+      {% for af in admin_files %}
+      <tr>
+        <td>{{ af.filename }}</td>
+        <td>{{ (af.size_bytes / 1024) | round(1) }} KB</td>
+        <td>{{ af.uploaded_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td>
+          <a href="/admin/archivos/{{ af.id }}/descargar">⬇️ Descargar</a>
+          &nbsp;·&nbsp;
+          <a href="#" onclick="borrarArchivo({{ af.id }}); return false;" style="color:#e08a8a;">🗑️ Borrar</a>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" style="color:#9aa4c7;">Sin archivos cargados.</td></tr>
+      {% endfor %}
+    </table>
+
+    <div style="margin-top:22px; padding-top:16px; border-top:1px solid #3a2020;">
+      <p style="color:#e08a8a; font-size:12px; margin-bottom:8px;">
+        Zona de riesgo — borra TODOS los archivos guardados acá, de una sola vez.
+      </p>
+      <button id="borrarArchivosTodoBtn" style="background:#7a2030; border-color:#a53a4a;">
+        Borrar TODOS los archivos
+      </button>
+      <div id="resultBorrarArchivos" style="white-space:pre-wrap; font-size:13px; background:#0b1020; padding:12px;
+           border-radius:8px; margin-top:14px; display:none;"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Alias de aeropuertos (para combustible)</h3>
+    <p style="color:#9aa4c7; font-size:13px;">
+      El Excel de combustible suele traer los nombres en MAYÚSCULAS y sin tildes
+      (ej. "EZEIZA", "CORDOBA") — eso se resuelve solo. Pero algunos vienen con una
+      abreviatura distinta a la del mapa (ej. "COMODORO RIVADAVIA" vs "Comod.
+      Rivadavia"): para esos casos, cargá acá el alias apuntando al aeropuerto real.
+      Si un aeropuerto directamente no existe en el mapa (ej. Plumerillo, Mosconi),
+      primero agregalo en "Aeropuertos conocidos" más abajo.
+    </p>
+    <button id="checkUnmatchedBtn" type="button">Ver aeropuertos sin match</button>
+    <button id="reprocessBtn" type="button" style="margin-left:8px;">Reprocesar datos ya cargados</button>
+    <div id="unmatchedResult" style="white-space:pre-wrap; font-size:13px; background:#0b1020; padding:12px;
+         border-radius:8px; margin-top:10px; display:none;"></div>
+
+    <div style="margin-top:16px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <input id="aliasInput" type="text" placeholder="Nombre tal como viene en el Excel (ej. COMODORO RIVADAVIA)"
+             style="flex:1; min-width:260px;">
+      <select id="aliasAirportSelect">
+        {% for a in airports %}
+        <option value="{{ a.name }}">{{ a.name }}</option>
+        {% endfor %}
+      </select>
+      <button id="addAliasBtn" type="button">Agregar alias</button>
+    </div>
+    <div id="aliasResult" style="white-space:pre-wrap; font-size:13px; display:none; margin-top:8px;"></div>
+
+    <table id="aliasTable" style="margin-top:16px;">
+      <tr><th>Alias (como viene en el Excel)</th><th>Aeropuerto del mapa</th><th></th></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>Rutas manuales (sin tráfico real de ANAC)</h3>
+    <p style="color:#9aa4c7; font-size:13px;">
+      Excel con columnas: <b>Partida</b>, <b>Arribo</b>, <b>Tipo</b> (Internacional / Cabotaje),
+      <b>Avión</b>, <b>Asientos</b>, <b>Consumo (kg)</b> <i>(opcional)</i>.<br>
+      Si dejás la columna Consumo vacía, se calcula automáticamente con el modelo. Si la completás,
+      ese valor se usa directamente y pisa el cálculo automático.<br>
+      Si la ruta ya tiene tráfico real de ANAC, solo se actualiza el avión/asientos/consumo — no se
+      duplican vuelos. Si no tiene tráfico real, se dibuja igual en el mapa como línea fija.
+    </p>
+    <div id="dropManual" style="border:2px dashed #3a4470; border-radius:10px; padding:24px;
+         text-align:center; cursor:pointer;">
+      Arrastrá el .xlsx de rutas manuales acá, o hacé click para elegirlo
+      <input type="file" id="fileManual" accept=".xlsx" style="display:none">
+    </div>
+    <div id="fileManualName" style="margin-top:8px; font-size:13px; color:#9aa4c7;"></div>
+    <button id="uploadManualBtn" disabled>Cargar rutas manuales</button>
+    <div id="resultManual" style="white-space:pre-wrap; font-size:13px; background:#0b1020; padding:12px;
+         border-radius:8px; margin-top:14px; max-height:200px; overflow-y:auto; display:none;"></div>
+
+    <details style="margin-top:18px;">
+      <summary style="cursor:pointer; color:#9aa4c7; font-size:13px;">O cargar una sola ruta desde acá (sin Excel)</summary>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px;">
+        <div>
+          <label style="font-size:12px; color:#9aa4c7;">Partida</label>
+          <input type="text" id="singlePartida" placeholder="Ezeiza"
+                 style="width:100%; padding:6px; border-radius:4px; border:1px solid #3a4470; background:#0b1020; color:#fff; font-size:13px; box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:12px; color:#9aa4c7;">Arribo</label>
+          <input type="text" id="singleArribo" placeholder="Beijing"
+                 style="width:100%; padding:6px; border-radius:4px; border:1px solid #3a4470; background:#0b1020; color:#fff; font-size:13px; box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:12px; color:#9aa4c7;">Tipo</label>
+          <select id="singleTipo" style="width:100%; padding:6px; border-radius:4px; border:1px solid #3a4470; background:#0b1020; color:#fff; font-size:13px;">
+            <option value="internacional">Internacional</option>
+            <option value="cabotaje">Cabotaje</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px; color:#9aa4c7;">Avión</label>
+          <select id="singleAvion" style="width:100%; padding:6px; border-radius:4px; border:1px solid #3a4470; background:#0b1020; color:#fff; font-size:13px;">
+            {% for ac in aircraft %}
+            <option value="{{ ac.name }}">{{ ac.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px; color:#9aa4c7;">Asientos <i>(opcional, usa el default del avión si se deja vacío)</i></label>
+          <input type="number" id="singleAsientos" placeholder="Automático"
+                 style="width:100%; padding:6px; border-radius:4px; border:1px solid #3a4470; background:#0b1020; color:#fff; font-size:13px; box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:12px; color:#9aa4c7;">Consumo (kg) <i>(opcional, se calcula si se deja vacío)</i></label>
+          <input type="number" step="any" id="singleConsumo" placeholder="Automático"
+                 style="width:100%; padding:6px; border-radius:4px; border:1px solid #3a4470; background:#0b1020; color:#fff; font-size:13px; box-sizing:border-box;">
+        </div>
+      </div>
+      <button id="singleRouteBtn" style="margin-top:12px;">Cargar esta ruta</button>
+      <div id="resultSingle" style="white-space:pre-wrap; font-size:13px; background:#0b1020; padding:12px;
+           border-radius:8px; margin-top:14px; display:none;"></div>
+    </details>
+
+    {% if manual_routes %}
+    <table style="margin-top:18px;">
+      <tr><th>Ruta</th><th>Tipo</th><th>Avión</th><th>Asientos</th><th>Consumo (kg)</th><th>Fecha carga</th><th></th></tr>
+      {% for mr in manual_routes %}
+      <tr>
+        <td>{{ mr.origin }} — {{ mr.dest }}</td>
+        <td>{{ mr.tipo }}</td>
+        <td>{{ mr.avion }}</td>
+        <td>{{ mr.asientos or '—' }}</td>
+        <td>{{ mr.consumo_kg_manual or 'Calculado' }}</td>
+        <td>{{ mr.uploaded_at.strftime('%Y-%m-%d') }}</td>
+        <td><button class="del-btn" data-id="{{ mr.id }}"
+            style="background:#c0392b; padding:4px 10px; font-size:12px; margin:0;">✕</button></td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <p style="color:#9aa4c7; font-size:13px; margin-top:12px;">No hay rutas manuales cargadas aún.</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h3>Catálogo de aviones</h3>
+    <p style="color:#9aa4c7; font-size:13px;">
+      Modelos de avión con su consumo por hora, velocidad crucero y asientos por defecto.
+      Este catálogo se usa al elegir avión en rutas manuales (en vez de escribirlo a mano) y
+      define los valores que alimentan el cálculo automático de consumo total por vuelo.
+      "Peso operativo" y "Elasticidad" son opcionales — afinan el ajuste por ocupación real que
+      se simula en el mapa; si se dejan vacíos, ese ajuste usa una aproximación genérica por
+      tipo de fuselaje en vez del peso real de este avión.
+    </p>
+    <input id="aircraftSearch" type="text" placeholder="Buscar avión..."
+           style="width:100%; padding:8px 10px; border-radius:6px; border:1px solid #3a4470;
+                  background:#0b1020; color:#fff; font-size:13px; margin-bottom:10px; box-sizing:border-box;">
+    <p style="color:#7d87ab; font-size:12px; margin:0 0 10px;">
+      Las filas cuyo nombre coincide EXACTO con un tipo de <code>flota.json</code> ya usan el
+      modelo calibrado real (columna "Fuente") — el consumo/hora que se ve acá es solo una
+      aproximación de referencia y no participa del cálculo. Para esas, el valor con validez real
+      se edita regenerando <code>flota.json</code>, no desde esta tabla.
+    </p>
+    <div style="max-height:400px; overflow: auto;">
+      <table id="aircraftTable" style="min-width:980px; width:100%;">
+        <colgroup>
+          <col style="width:210px;"><col style="width:100px;"><col style="width:110px;">
+          <col style="width:120px;"><col style="width:110px;"><col style="width:110px;">
+          <col style="width:110px;"><col style="width:70px;"><col style="width:110px;">
+        </colgroup>
+        <tr>
+          <th>Nombre</th><th>Fuselaje</th><th>Consumo/h (kg)</th><th>Vel. crucero (km/h)</th>
+          <th>Asientos default</th><th>Peso operativo (kg)</th><th>Elasticidad (%/%)</th>
+          <th>Fuente</th><th></th>
+        </tr>
+        <tr id="aircraftAddRow">
+          <td><input type="text" id="newAircraftName" placeholder="Boeing 787-9"
+                     style="width:100%; padding:5px; border-radius:4px; border:1px solid #3a4470; background:#0b1020; color:#fff; font-size:13px; box-sizing:border-box;"></td>
+          <td>
+            <select id="newAircraftTipo" style="width:100%; padding:5px; border-radius:4px; border:1px solid #3a4470; background:#0b1020; color:#fff; font-size:13px;">
+              <option value="regional">regional</option>
+              <option value="narrow" selected>narrow</option>
+              <option value="wide">wide</option>
+              <option value="piston">piston</option>
+            </select>
+          </td>
+          <td><input type="number" step="any" id="newAircraftConsumo" placeholder="5150"
+                     style="width:100%; padding:5px; border-radius:4px; border:1px solid #3a4470; background:#0b1020; color:#fff; font-size:13px; box-sizing:border-box;"></td>
+          <td><input type="number" step="any" id="newAircraftVelocidad" placeholder="903"
+                     style="width:100%; padding:5px; border-radius:4px; border:1px solid #3a4470; background:#0b1020; color:#fff; font-size:13px; box-sizing:border-box;"></td>
+          <td><input type="number" id="newAircraftAsientos" placeholder="300 (opcional)"
+                     style="width:100%; padding:5px; border-radius:4px; border:1px solid #3a4470; background:#0b1020; color:#fff; font-size:13px; box-sizing:border-box;"></td>
+          <td><input type="number" step="any" id="newAircraftPeso" placeholder="opcional"
+                     style="width:100%; padding:5px; border-radius:4px; border:1px solid #3a4470; background:#0b1020; color:#fff; font-size:13px; box-sizing:border-box;"></td>
+          <td><input type="number" step="any" id="newAircraftElasticidad" placeholder="opcional, ej. 0.8"
+                     style="width:100%; padding:5px; border-radius:4px; border:1px solid #3a4470; background:#0b1020; color:#fff; font-size:13px; box-sizing:border-box;"></td>
+          <td></td>
+          <td><button id="addAircraftBtn" style="background:#2e9c5c; padding:5px 12px; font-size:12px; margin:0;">+ Agregar</button></td>
+        </tr>
+        {% for ac in aircraft %}
+        <tr class="aircraft-row" data-name="{{ ac.name|lower }}">
+          <td><input type="text" class="aircraft-name" value="{{ ac.name }}" title="{{ ac.name }}"
+                     style="width:100%; padding:5px; border-radius:4px; border:1px solid #2a3358; background:transparent; color:#fff; font-size:13px; box-sizing:border-box;"></td>
+          <td>
+            <select class="aircraft-tipo" style="width:100%; padding:5px; border-radius:4px; border:1px solid #2a3358; background:transparent; color:#fff; font-size:13px;">
+              <option value="regional" {{ 'selected' if ac.tipo_fuselaje == 'regional' else '' }}>regional</option>
+              <option value="narrow" {{ 'selected' if ac.tipo_fuselaje == 'narrow' else '' }}>narrow</option>
+              <option value="wide" {{ 'selected' if ac.tipo_fuselaje == 'wide' else '' }}>wide</option>
+              <option value="piston" {{ 'selected' if ac.tipo_fuselaje == 'piston' else '' }}>piston</option>
+            </select>
+          </td>
+          <td><input type="number" step="any" class="aircraft-consumo" value="{{ ac.consumo_hora_kg }}"
+                     style="width:100%; padding:5px; border-radius:4px; border:1px solid #2a3358; background:transparent; color:#fff; font-size:13px; box-sizing:border-box;"></td>
+          <td><input type="number" step="any" class="aircraft-velocidad" value="{{ ac.velocidad_crucero_kmh }}"
+                     style="width:100%; padding:5px; border-radius:4px; border:1px solid #2a3358; background:transparent; color:#fff; font-size:13px; box-sizing:border-box;"></td>
+          <td><input type="number" class="aircraft-asientos" value="{{ ac.asientos_default or '' }}"
+                     style="width:100%; padding:5px; border-radius:4px; border:1px solid #2a3358; background:transparent; color:#fff; font-size:13px; box-sizing:border-box;"></td>
+          <td><input type="number" step="any" class="aircraft-peso" value="{{ ac.peso_operativo_kg or '' }}" placeholder="opcional"
+                     style="width:100%; padding:5px; border-radius:4px; border:1px solid #2a3358; background:transparent; color:#fff; font-size:13px; box-sizing:border-box;"></td>
+          <td><input type="number" step="any" class="aircraft-elasticidad" value="{{ ac.elasticidad_override if ac.elasticidad_override is not none else '' }}" placeholder="opcional"
+                     style="width:100%; padding:5px; border-radius:4px; border:1px solid #2a3358; background:transparent; color:#fff; font-size:13px; box-sizing:border-box;"></td>
+          <td style="text-align:center;">
+            {% if ac.name in flota_nombres %}
+            <span title="El consumo real de esta ruta sale de flota.json, calibrado contra la planilla — no de esta fila." style="color:#8fe3a2; font-size:16px; cursor:help;">●</span>
+            {% else %}
+            <span title="Entrada legacy: usa el modelo por hora de esta fila." style="color:#9aa4c7; font-size:16px; cursor:help;">○</span>
+            {% endif %}
+          </td>
+          <td style="white-space:nowrap;">
+            <button class="save-aircraft-btn" data-original="{{ ac.name }}"
+                    style="background:#4c7cf0; padding:4px 10px; font-size:12px; margin:0;">Guardar</button>
+            <button class="del-aircraft-btn" data-name="{{ ac.name }}"
+                    style="background:#c0392b; padding:4px 10px; font-size:12px; margin:0 0 0 4px;">✕</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+    <div id="resultAircraft" style="white-space:pre-wrap; font-size:13px; background:#0b1020; padding:12px;
+         border-radius:8px; margin-top:14px; max-height:140px; overflow-y:auto; display:none;"></div>
+  </div>
+
+
+  <div class="card">
+    <h3>Aeropuertos / Coordenadas (geocode)</h3>
+    <p style="color:#9aa4c7; font-size:13px;">
+      Lugares conocidos y sus coordenadas. Cualquier ruta que use un lugar que no esté acá
+      queda omitida del mapa hasta que lo agregues. Podés editar nombre, latitud y longitud,
+      agregar lugares nuevos, o borrar los que no estén en uso por ninguna ruta.
+    </p>
+    <input id="airportSearch" type="text" placeholder="Buscar aeropuerto/ciudad..."
+           style="width:100%; padding:8px 10px; border-radius:6px; border:1px solid #3a4470;
+                  background:#0b1020; color:#fff; font-size:13px; margin-bottom:10px; box-sizing:border-box;">
+    <div style="max-height:340px; overflow-y:auto;">
+      <table id="airportTable">
+        <tr><th>Nombre</th><th>Latitud</th><th>Longitud</th><th>Argentina</th><th></th></tr>
+        <tr id="airportAddRow">
+          <td><input type="text" id="newAirportName" placeholder="Nombre nuevo"
+                     style="width:100%; padding:5px; border-radius:4px; border:1px solid #3a4470; background:#0b1020; color:#fff; font-size:13px; box-sizing:border-box;"></td>
+          <td><input type="number" step="any" id="newAirportLat" placeholder="-34.5592"
+                     style="width:100%; padding:5px; border-radius:4px; border:1px solid #3a4470; background:#0b1020; color:#fff; font-size:13px; box-sizing:border-box;"></td>
+          <td><input type="number" step="any" id="newAirportLon" placeholder="-58.4156"
+                     style="width:100%; padding:5px; border-radius:4px; border:1px solid #3a4470; background:#0b1020; color:#fff; font-size:13px; box-sizing:border-box;"></td>
+          <td style="text-align:center;"><input type="checkbox" id="newAirportIsArgentina"></td>
+          <td><button id="addAirportBtn" style="background:#2e9c5c; padding:5px 12px; font-size:12px; margin:0;">+ Agregar</button></td>
+        </tr>
+        {% for a in airports %}
+        <tr class="airport-row" data-name="{{ a.name|lower }}">
+          <td><input type="text" class="airport-name" value="{{ a.name }}"
+                     style="width:100%; padding:5px; border-radius:4px; border:1px solid #2a3358; background:transparent; color:#fff; font-size:13px; box-sizing:border-box;"></td>
+          <td><input type="number" step="any" class="airport-lat" value="{{ a.lat }}"
+                     style="width:100%; padding:5px; border-radius:4px; border:1px solid #2a3358; background:transparent; color:#fff; font-size:13px; box-sizing:border-box;"></td>
+          <td><input type="number" step="any" class="airport-lon" value="{{ a.lon }}"
+                     style="width:100%; padding:5px; border-radius:4px; border:1px solid #2a3358; background:transparent; color:#fff; font-size:13px; box-sizing:border-box;"></td>
+          <td style="text-align:center;"><input type="checkbox" class="airport-is-argentina" {% if a.is_argentina %}checked{% endif %}></td>
+          <td style="white-space:nowrap;">
+            <button class="save-airport-btn" data-original="{{ a.name }}"
+                    style="background:#4c7cf0; padding:4px 10px; font-size:12px; margin:0;">Guardar</button>
+            <button class="del-airport-btn" data-name="{{ a.name }}"
+                    style="background:#c0392b; padding:4px 10px; font-size:12px; margin:0 0 0 4px;">✕</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+    <div id="resultAirport" style="white-space:pre-wrap; font-size:13px; background:#0b1020; padding:12px;
+         border-radius:8px; margin-top:14px; max-height:140px; overflow-y:auto; display:none;"></div>
+  </div>
+
+  <div class="card">
+    <h3>Historial de cargas</h3>
+    <table>
+      <tr><th>Fecha</th><th>Archivo</th><th>Rutas</th><th>Aeropuertos</th><th>Notas</th></tr>
+      {% for log in logs %}
+      <tr>
+        <td>{{ log.uploaded_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td>{{ log.filename }}</td>
+        <td>{{ log.rows_routes }}</td>
+        <td>{{ log.rows_airports }}</td>
+        <td>{{ log.note or '' }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+
+<script>
+// Aerolíneas (ANAC PDF) upload
+const dropAerolineas = document.getElementById('dropAerolineas');
+const fileAerolineas = document.getElementById('fileAerolineas');
+const uploadAerolineasBtn = document.getElementById('uploadAerolineasBtn');
+const resultAerolineas = document.getElementById('resultAerolineas');
+
+dropAerolineas.addEventListener('click', () => fileAerolineas.click());
+dropAerolineas.addEventListener('dragover', (e) => { e.preventDefault(); dropAerolineas.style.borderColor='#4c7cf0'; });
+dropAerolineas.addEventListener('dragleave', () => { dropAerolineas.style.borderColor='#3a4470'; });
+dropAerolineas.addEventListener('drop', (e) => {
+  e.preventDefault(); dropAerolineas.style.borderColor='#3a4470';
+  if (e.dataTransfer.files[0]) setAerolineasFile(e.dataTransfer.files[0]);
+});
+fileAerolineas.addEventListener('change', () => { if (fileAerolineas.files[0]) setAerolineasFile(fileAerolineas.files[0]); });
+
+function setAerolineasFile(f) {
+  document.getElementById('fileAerolineasName').textContent = f.name;
+  uploadAerolineasBtn._file = f;
+  uploadAerolineasBtn.disabled = false;
+}
+
+uploadAerolineasBtn.addEventListener('click', async () => {
+  uploadAerolineasBtn.disabled = true;
+  uploadAerolineasBtn.textContent = 'Procesando...';
+  const fd = new FormData();
+  fd.append('file', uploadAerolineasBtn._file);
+  try {
+    const res = await fetch('/upload_aerolineas', { method: 'POST', body: fd });
+    const data = await res.json();
+    resultAerolineas.style.display = 'block';
+    if (!res.ok) {
+      resultAerolineas.textContent = 'Error: ' + data.error;
+    } else {
+      let msg = `✅ Informe ${data.mes_informe} procesado: ${data.insertados} registros nuevos, ${data.actualizados} actualizados.`;
+      if (data.warnings && data.warnings.length) msg += `\n\n⚠️ Avisos:\n${data.warnings.join('\n')}`;
+      resultAerolineas.textContent = msg;
+      setTimeout(() => location.reload(), 1800);
+    }
+  } catch (err) {
+    resultAerolineas.style.display = 'block';
+    resultAerolineas.textContent = 'Error: ' + err;
+  }
+  uploadAerolineasBtn.disabled = false;
+  uploadAerolineasBtn.textContent = 'Subir y procesar';
+});
+
+// Manual routes upload
+const dropManual = document.getElementById('dropManual');
+const fileManual = document.getElementById('fileManual');
+const uploadManualBtn = document.getElementById('uploadManualBtn');
+const resultManual = document.getElementById('resultManual');
+
+dropManual.addEventListener('click', () => fileManual.click());
+const dropFuelSales = document.getElementById('dropFuelSales');
+const fileFuelSales = document.getElementById('fileFuelSales');
+const uploadFuelSalesBtn = document.getElementById('uploadFuelSalesBtn');
+const resultFuelSales = document.getElementById('resultFuelSales');
+
+dropFuelSales.addEventListener('click', () => fileFuelSales.click());
+dropFuelSales.addEventListener('dragover', (e) => { e.preventDefault(); dropFuelSales.style.borderColor='#4c7cf0'; });
+dropFuelSales.addEventListener('dragleave', () => { dropFuelSales.style.borderColor='#3a4470'; });
+dropFuelSales.addEventListener('drop', (e) => {
+  e.preventDefault(); dropFuelSales.style.borderColor='#3a4470';
+  if (e.dataTransfer.files[0]) setFuelSalesFile(e.dataTransfer.files[0]);
+});
+fileFuelSales.addEventListener('change', () => { if (fileFuelSales.files[0]) setFuelSalesFile(fileFuelSales.files[0]); });
+
+function setFuelSalesFile(f) {
+  document.getElementById('fileFuelSalesName').textContent = f.name;
+  uploadFuelSalesBtn._file = f;
+  uploadFuelSalesBtn.disabled = false;
+}
+
+uploadFuelSalesBtn.addEventListener('click', async () => {
+  uploadFuelSalesBtn.disabled = true;
+  uploadFuelSalesBtn.textContent = 'Procesando...';
+  resultFuelSales.style.display = 'block';
+  resultFuelSales.textContent = 'Subiendo…';
+  const fd = new FormData();
+  fd.append('file', uploadFuelSalesBtn._file);
+  try {
+    const res = await fetch('/upload_fuel_sales', { method: 'POST', body: fd });
+    let data;
+    try {
+      data = await res.json();
+    } catch (parseErr) {
+      // El servidor respondió con HTML, no con JSON — la ruta /upload_fuel_sales siempre
+      // devuelve JSON (hasta sus propios errores 500 lo hacen), así que esto NO es un bug
+      // de esta app: es la infraestructura (Render) devolviendo su propia página de error
+      // antes de que la request llegue a Flask. Las causas más comunes: el plan gratis
+      // "duerme" la app a los 15 min sin uso y la primera request tarda en despertarla, o
+      // el archivo es grande y el procesamiento superó el tiempo que tolera el proxy.
+      resultFuelSales.textContent =
+        `El servidor respondió con estado ${res.status} pero no en formato JSON — no es un ` +
+        `error de esta app, es la infraestructura (Render).\n\n` +
+        `Causas más probables:\n` +
+        `• La app estaba "dormida" (el plan gratis se apaga a los 15 min sin uso) y la ` +
+        `primera request la despertó a mitad de camino — esperá 30-60 segundos y volvé a ` +
+        `intentar.\n` +
+        `• El archivo es grande y el procesamiento superó el tiempo que tolera el proxy de ` +
+        `Render — probá con menos filas por vez, o revisá los logs de Render para confirmar.`;
+      uploadFuelSalesBtn.disabled = false;
+      uploadFuelSalesBtn.textContent = 'Subir y procesar';
+      return;
+    }
+    if (data.error) {
+      resultFuelSales.textContent = 'Error: ' + data.error;
+    } else {
+      let msg = `Período ${data.periodo}: ${data.insertados} insertados, ${data.actualizados} actualizados.`;
+      if (data.sin_match && data.sin_match.length) {
+        msg += `\n\n⚠ ${data.sin_match.length} aeropuerto(s) sin match con el mapa (no van a aparecer hasta resolverlos abajo):\n- ` + data.sin_match.join('\n- ');
+      }
+      resultFuelSales.textContent = msg;
+      fileFuelSales.value = '';
+      document.getElementById('fileFuelSalesName').textContent = '';
+    }
+  } catch (err) {
+    resultFuelSales.style.display = 'block';
+    resultFuelSales.textContent = 'Error de red: ' + err;
+  }
+  uploadFuelSalesBtn.disabled = false;
+  uploadFuelSalesBtn.textContent = 'Subir y procesar';
+});
+
+// ---------- Borrado masivo de ventas de combustible ----------
+const borrarFuelSalesBtn = document.getElementById('borrarFuelSalesBtn');
+const resultBorrarFuelSales = document.getElementById('resultBorrarFuelSales');
+borrarFuelSalesBtn.addEventListener('click', async () => {
+  const escrito = prompt(
+    'Esto borra TODOS los registros de ventas de combustible de la base (Neon), sin ' +
+    'posibilidad de deshacerlo — el mapa va a dejar de mostrar esos datos hasta que subas ' +
+    'un Excel nuevo.\n\nEscribí BORRAR (en mayúsculas) para confirmar:'
+  );
+  if (escrito !== 'BORRAR') {
+    if (escrito !== null) alert('No coincide con "BORRAR" — no se borró nada.');
+    return;
+  }
+  borrarFuelSalesBtn.disabled = true;
+  borrarFuelSalesBtn.textContent = 'Borrando...';
+  resultBorrarFuelSales.style.display = 'block';
+  resultBorrarFuelSales.textContent = 'Borrando…';
+  try {
+    const res = await fetch('/admin/fuel_sales/borrar_todo', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirmar: 'BORRAR' }),
+    });
+    let data;
+    try {
+      data = await res.json();
+    } catch (parseErr) {
+      resultBorrarFuelSales.textContent =
+        `El servidor respondió con estado ${res.status} pero no en formato JSON (posible ` +
+        `app "dormida" o timeout de Render) — esperá un momento y revisá si el borrado se ` +
+        `aplicó igual antes de reintentar, para no confundirte con un doble borrado.`;
+      borrarFuelSalesBtn.disabled = false;
+      borrarFuelSalesBtn.textContent = 'Borrar TODOS los datos de combustible';
+      return;
+    }
+    if (data.error) {
+      resultBorrarFuelSales.textContent = 'Error: ' + data.error;
+    } else {
+      resultBorrarFuelSales.textContent =
+        `Listo: se borraron ${data.ventas_borradas} registro(s) de ventas y ` +
+        `${data.logs_borrados} entrada(s) del historial de subidas. Recargá la página para ` +
+        `ver la tabla vacía.`;
+    }
+  } catch (err) {
+    resultBorrarFuelSales.style.display = 'block';
+    resultBorrarFuelSales.textContent = 'Error de red: ' + err;
+  }
+  borrarFuelSalesBtn.disabled = false;
+  borrarFuelSalesBtn.textContent = 'Borrar TODOS los datos de combustible';
+});
+
+// ---------- Alias de aeropuertos ----------
+async function loadAliasTable() {
+  const table = document.getElementById('aliasTable');
+  table.innerHTML = '<tr><th>Alias (como viene en el Excel)</th><th>Aeropuerto del mapa</th><th></th></tr>';
+  try {
+    const res = await fetch('/admin/airport_aliases');
+    const aliases = await res.json();
+    aliases.forEach(a => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${a.alias}</td><td>${a.airport_name}</td><td></td>`;
+      const delBtn = document.createElement('button');
+      delBtn.textContent = 'Borrar';
+      delBtn.type = 'button';
+      delBtn.onclick = async () => {
+        await fetch('/admin/airport_aliases/delete', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({alias: a.alias})
+        });
+        loadAliasTable();
+      };
+      tr.lastElementChild.appendChild(delBtn);
+      table.appendChild(tr);
+    });
+  } catch (err) { /* silencioso */ }
+}
+loadAliasTable();
+
+document.getElementById('addAliasBtn').addEventListener('click', async () => {
+  const alias = document.getElementById('aliasInput').value.trim();
+  const airport_name = document.getElementById('aliasAirportSelect').value;
+  const resultEl = document.getElementById('aliasResult');
+  if (!alias) { return; }
+  try {
+    const res = await fetch('/admin/airport_aliases/add', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({alias, airport_name})
+    });
+    const data = await res.json();
+    resultEl.style.display = 'block';
+    resultEl.style.color = data.error ? '#e0524f' : '#7fd88f';
+    resultEl.textContent = data.error ? ('Error: ' + data.error) : `Listo: "${data.alias}" → ${data.airport_name}`;
+    if (!data.error) {
+      document.getElementById('aliasInput').value = '';
+      loadAliasTable();
+    }
+  } catch (err) {
+    resultEl.style.display = 'block';
+    resultEl.textContent = 'Error: ' + err;
+  }
+});
+
+document.getElementById('checkUnmatchedBtn').addEventListener('click', async () => {
+  const resultEl = document.getElementById('unmatchedResult');
+  resultEl.style.display = 'block';
+  resultEl.textContent = 'Buscando...';
+  try {
+    const res = await fetch('/admin/fuel_sales_unmatched');
+    const data = await res.json();
+    if (data.error) {
+      resultEl.textContent = 'Error: ' + data.error;
+    } else if (!data.sin_match.length) {
+      resultEl.textContent = '✓ Todos los aeropuertos cargados matchean con el mapa.';
+    } else {
+      resultEl.textContent = `${data.sin_match.length} aeropuerto(s) sin match:\n- ` + data.sin_match.join('\n- ');
+    }
+  } catch (err) {
+    resultEl.textContent = 'Error: ' + err;
+  }
+});
+
+document.getElementById('reprocessBtn').addEventListener('click', async () => {
+  const resultEl = document.getElementById('unmatchedResult');
+  resultEl.style.display = 'block';
+  resultEl.textContent = 'Reprocesando...';
+  try {
+    const res = await fetch('/admin/fuel_sales_unmatched/reprocess', { method: 'POST' });
+    const data = await res.json();
+    resultEl.textContent = data.error ? ('Error: ' + data.error)
+      : `Listo: ${data.renombrados} fila(s) renombrada(s), ${data.fusionados} fusionada(s) por duplicado.`;
+  } catch (err) {
+    resultEl.textContent = 'Error: ' + err;
+  }
+});
+
+dropManual.addEventListener('dragover', (e) => { e.preventDefault(); dropManual.style.borderColor='#4c7cf0'; });
+dropManual.addEventListener('dragleave', () => { dropManual.style.borderColor='#3a4470'; });
+dropManual.addEventListener('drop', (e) => {
+  e.preventDefault(); dropManual.style.borderColor='#3a4470';
+  if (e.dataTransfer.files[0]) setManualFile(e.dataTransfer.files[0]);
+});
+fileManual.addEventListener('change', () => { if (fileManual.files[0]) setManualFile(fileManual.files[0]); });
+
+function setManualFile(f) {
+  document.getElementById('fileManualName').textContent = f.name;
+  uploadManualBtn._file = f;
+  uploadManualBtn.disabled = false;
+}
+
+uploadManualBtn.addEventListener('click', async () => {
+  uploadManualBtn.disabled = true;
+  uploadManualBtn.textContent = 'Procesando...';
+  const fd = new FormData();
+  fd.append('file', uploadManualBtn._file);
+  try {
+    const res = await fetch('/upload_manual', { method: 'POST', body: fd });
+    const data = await res.json();
+    resultManual.style.display = 'block';
+    resultManual.textContent = data.errors && data.errors.length
+      ? `✅ ${data.ok} rutas cargadas\n\n⚠️ Errores:\n${data.errors.join('\n')}`
+      : `✅ ${data.ok} rutas cargadas correctamente`;
+    if (res.ok) setTimeout(() => location.reload(), 1500);
+  } catch (err) {
+    resultManual.style.display = 'block';
+    resultManual.textContent = 'Error: ' + err;
+  }
+  uploadManualBtn.disabled = false;
+  uploadManualBtn.textContent = 'Cargar rutas manuales';
+});
+
+// Delete manual route
+document.querySelectorAll('.del-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    if (!confirm('¿Borrar esta ruta manual?')) return;
+    const res = await fetch(`/manual_routes/delete/${btn.dataset.id}`, { method: 'POST' });
+    if (res.ok) location.reload();
+  });
+});
+const fileInput = document.getElementById('fileInput');
+const fileListEl = document.getElementById('fileList');
+const uploadBtn = document.getElementById('uploadBtn');
+const resultEl = document.getElementById('result');
+const dropEl = document.getElementById('drop');
+let selectedFiles = [];
+
+dropEl.addEventListener('click', () => fileInput.click());
+dropEl.addEventListener('dragover', (e) => { e.preventDefault(); dropEl.classList.add('dragover'); });
+dropEl.addEventListener('dragleave', () => dropEl.classList.remove('dragover'));
+dropEl.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropEl.classList.remove('dragover');
+  setFiles(e.dataTransfer.files);
+});
+fileInput.addEventListener('change', () => setFiles(fileInput.files));
+
+function setFiles(fileListObj) {
+  selectedFiles = Array.from(fileListObj);
+  fileListEl.textContent = selectedFiles.map(f => f.name).join(', ') || 'Ningún archivo elegido';
+  uploadBtn.disabled = selectedFiles.length === 0;
+}
+
+uploadBtn.addEventListener('click', async () => {
+  uploadBtn.disabled = true;
+  uploadBtn.textContent = 'Subiendo y procesando...';
+  const formData = new FormData();
+  selectedFiles.forEach(f => formData.append('files', f));
+  try {
+    const res = await fetch('/upload', { method: 'POST', body: formData });
+    const data = await res.json();
+    resultEl.style.display = 'block';
+    resultEl.textContent = JSON.stringify(data, null, 2);
+    if (res.ok) {
+      setTimeout(() => location.reload(), 1500);
+    }
+  } catch (err) {
+    resultEl.style.display = 'block';
+    resultEl.textContent = 'Error: ' + err;
+  }
+  uploadBtn.disabled = false;
+  uploadBtn.textContent = 'Subir y actualizar base de datos';
+});
+
+// ---------- Airports / geocode CRUD ----------
+const resultAirport = document.getElementById('resultAirport');
+
+function showAirportResult(msg, isError) {
+  resultAirport.style.display = 'block';
+  resultAirport.style.color = isError ? '#e0663f' : '#9aa4c7';
+  resultAirport.textContent = msg;
+}
+
+document.getElementById('airportSearch').addEventListener('input', (e) => {
+  const q = e.target.value.toLowerCase();
+  document.querySelectorAll('#airportTable .airport-row').forEach(row => {
+    row.style.display = row.dataset.name.includes(q) ? '' : 'none';
+  });
+});
+
+document.getElementById('addAirportBtn').addEventListener('click', async () => {
+  const name = document.getElementById('newAirportName').value.trim();
+  const lat = document.getElementById('newAirportLat').value;
+  const lon = document.getElementById('newAirportLon').value;
+  const is_argentina = document.getElementById('newAirportIsArgentina').checked;
+  if (!name || lat === '' || lon === '') {
+    showAirportResult('Completá nombre, latitud y longitud.', true);
+    return;
+  }
+  try {
+    const res = await fetch('/admin/airports/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, lat, lon, is_argentina })
+    });
+    const data = await res.json();
+    if (!res.ok) { showAirportResult('Error: ' + data.error, true); return; }
+    showAirportResult(`✅ '${data.name}' agregado correctamente.`, false);
+    setTimeout(() => location.reload(), 1000);
+  } catch (err) {
+    showAirportResult('Error: ' + err, true);
+  }
+});
+
+document.querySelectorAll('.save-airport-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const row = btn.closest('tr');
+    const originalName = btn.dataset.original;
+    const name = row.querySelector('.airport-name').value.trim();
+    const lat = row.querySelector('.airport-lat').value;
+    const lon = row.querySelector('.airport-lon').value;
+    const is_argentina = row.querySelector('.airport-is-argentina').checked;
+    if (!name || lat === '' || lon === '') {
+      showAirportResult('Completá nombre, latitud y longitud.', true);
+      return;
+    }
+    btn.disabled = true;
+    try {
+      const res = await fetch('/admin/airports/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ original_name: originalName, name, lat, lon, is_argentina })
+      });
+      const data = await res.json();
+      if (!res.ok) { showAirportResult('Error: ' + data.error, true); btn.disabled = false; return; }
+      showAirportResult(`✅ '${originalName}' actualizado correctamente.`, false);
+      setTimeout(() => location.reload(), 1000);
+    } catch (err) {
+      showAirportResult('Error: ' + err, true);
+      btn.disabled = false;
+    }
+  });
+});
+
+document.querySelectorAll('.del-airport-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const name = btn.dataset.name;
+    if (!confirm(`¿Borrar '${name}'? Esto solo funciona si ninguna ruta lo usa.`)) return;
+    btn.disabled = true;
+    try {
+      const res = await fetch('/admin/airports/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+      const data = await res.json();
+      if (!res.ok) { showAirportResult('Error: ' + data.error, true); btn.disabled = false; return; }
+      showAirportResult(`✅ '${name}' borrado correctamente.`, false);
+      setTimeout(() => location.reload(), 1000);
+    } catch (err) {
+      showAirportResult('Error: ' + err, true);
+      btn.disabled = false;
+    }
+  });
+});
+
+// ---------- Aircraft catalog CRUD ----------
+const resultAircraft = document.getElementById('resultAircraft');
+
+function showAircraftResult(msg, isError) {
+  resultAircraft.style.display = 'block';
+  resultAircraft.style.color = isError ? '#e0663f' : '#9aa4c7';
+  resultAircraft.textContent = msg;
+}
+
+document.getElementById('aircraftSearch').addEventListener('input', (e) => {
+  const q = e.target.value.toLowerCase();
+  document.querySelectorAll('#aircraftTable .aircraft-row').forEach(row => {
+    row.style.display = row.dataset.name.includes(q) ? '' : 'none';
+  });
+});
+
+document.getElementById('addAircraftBtn').addEventListener('click', async () => {
+  const name = document.getElementById('newAircraftName').value.trim();
+  const tipo_fuselaje = document.getElementById('newAircraftTipo').value;
+  const consumo_hora_kg = document.getElementById('newAircraftConsumo').value;
+  const velocidad_crucero_kmh = document.getElementById('newAircraftVelocidad').value;
+  const asientos_default = document.getElementById('newAircraftAsientos').value;
+  const peso_operativo_kg = document.getElementById('newAircraftPeso').value;
+  const elasticidad_override = document.getElementById('newAircraftElasticidad').value;
+  if (!name || consumo_hora_kg === '' || velocidad_crucero_kmh === '') {
+    showAircraftResult('Completá al menos nombre, consumo/hora y velocidad crucero.', true);
+    return;
+  }
+  try {
+    const res = await fetch('/admin/aircraft/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, tipo_fuselaje, consumo_hora_kg, velocidad_crucero_kmh,
+                              asientos_default, peso_operativo_kg, elasticidad_override })
+    });
+    const data = await res.json();
+    if (!res.ok) { showAircraftResult('Error: ' + data.error, true); return; }
+    showAircraftResult(`✅ '${data.name}' agregado correctamente.`, false);
+    setTimeout(() => location.reload(), 1000);
+  } catch (err) {
+    showAircraftResult('Error: ' + err, true);
+  }
+});
+
+document.querySelectorAll('.save-aircraft-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const row = btn.closest('tr');
+    const originalName = btn.dataset.original;
+    const name = row.querySelector('.aircraft-name').value.trim();
+    const tipo_fuselaje = row.querySelector('.aircraft-tipo').value;
+    const consumo_hora_kg = row.querySelector('.aircraft-consumo').value;
+    const velocidad_crucero_kmh = row.querySelector('.aircraft-velocidad').value;
+    const asientos_default = row.querySelector('.aircraft-asientos').value;
+    const peso_operativo_kg = row.querySelector('.aircraft-peso').value;
+    const elasticidad_override = row.querySelector('.aircraft-elasticidad').value;
+    if (!name || consumo_hora_kg === '' || velocidad_crucero_kmh === '') {
+      showAircraftResult('Completá al menos nombre, consumo/hora y velocidad crucero.', true);
+      return;
+    }
+    btn.disabled = true;
+    try {
+      const res = await fetch('/admin/aircraft/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ original_name: originalName, name, tipo_fuselaje, consumo_hora_kg,
+                                velocidad_crucero_kmh, asientos_default, peso_operativo_kg, elasticidad_override })
+      });
+      const data = await res.json();
+      if (!res.ok) { showAircraftResult('Error: ' + data.error, true); btn.disabled = false; return; }
+      showAircraftResult(`✅ '${originalName}' actualizado correctamente.`, false);
+      setTimeout(() => location.reload(), 1000);
+    } catch (err) {
+      showAircraftResult('Error: ' + err, true);
+      btn.disabled = false;
+    }
+  });
+});
+
+document.querySelectorAll('.del-aircraft-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const name = btn.dataset.name;
+    if (!confirm(`¿Borrar '${name}'? Esto solo funciona si ninguna ruta manual lo usa.`)) return;
+    btn.disabled = true;
+    try {
+      const res = await fetch('/admin/aircraft/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+      const data = await res.json();
+      if (!res.ok) { showAircraftResult('Error: ' + data.error, true); btn.disabled = false; return; }
+      showAircraftResult(`✅ '${name}' borrado correctamente.`, false);
+      setTimeout(() => location.reload(), 1000);
+    } catch (err) {
+      showAircraftResult('Error: ' + err, true);
+      btn.disabled = false;
+    }
+  });
+});
+
+// ---------- Single manual route (with aircraft dropdown) ----------
+const singleRouteBtn = document.getElementById('singleRouteBtn');
+const resultSingle = document.getElementById('resultSingle');
+
+if (singleRouteBtn) {
+  singleRouteBtn.addEventListener('click', async () => {
+    const partida = document.getElementById('singlePartida').value.trim();
+    const arribo = document.getElementById('singleArribo').value.trim();
+    const tipo = document.getElementById('singleTipo').value;
+    const avion = document.getElementById('singleAvion').value;
+    const asientos = document.getElementById('singleAsientos').value;
+    const consumo_kg = document.getElementById('singleConsumo').value;
+
+    if (!partida || !arribo) {
+      resultSingle.style.display = 'block';
+      resultSingle.style.color = '#e0663f';
+      resultSingle.textContent = 'Completá Partida y Arribo.';
+      return;
+    }
+
+    singleRouteBtn.disabled = true;
+    singleRouteBtn.textContent = 'Cargando...';
+    try {
+      const res = await fetch('/upload_manual_single', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ partida, arribo, tipo, avion, asientos, consumo_kg })
+      });
+      const data = await res.json();
+      resultSingle.style.display = 'block';
+      if (!res.ok) {
+        resultSingle.style.color = '#e0663f';
+        resultSingle.textContent = 'Error: ' + data.error;
+      } else {
+        resultSingle.style.color = '#9aa4c7';
+        resultSingle.textContent = `✅ Ruta ${data.origin} — ${data.dest} cargada correctamente.`;
+        setTimeout(() => location.reload(), 1200);
+      }
+    } catch (err) {
+      resultSingle.style.display = 'block';
+      resultSingle.style.color = '#e0663f';
+      resultSingle.textContent = 'Error: ' + err;
+    }
+    singleRouteBtn.disabled = false;
+    singleRouteBtn.textContent = 'Cargar esta ruta';
+  });
+}
+
+// ---------- Archivos (carga / descarga momentánea) ----------
+const dropArchivos = document.getElementById('dropArchivos');
+const fileArchivos = document.getElementById('fileArchivos');
+const uploadArchivosBtn = document.getElementById('uploadArchivosBtn');
+const resultArchivos = document.getElementById('resultArchivos');
+
+dropArchivos.addEventListener('click', () => fileArchivos.click());
+dropArchivos.addEventListener('dragover', (e) => { e.preventDefault(); dropArchivos.style.borderColor='#4c7cf0'; });
+dropArchivos.addEventListener('dragleave', () => { dropArchivos.style.borderColor='#3a4470'; });
+dropArchivos.addEventListener('drop', (e) => {
+  e.preventDefault(); dropArchivos.style.borderColor='#3a4470';
+  if (e.dataTransfer.files.length) setArchivosFiles(e.dataTransfer.files);
+});
+fileArchivos.addEventListener('change', () => { if (fileArchivos.files.length) setArchivosFiles(fileArchivos.files); });
+
+function setArchivosFiles(fileList) {
+  document.getElementById('fileArchivosNames').textContent =
+    Array.from(fileList).map(f => f.name).join(', ');
+  uploadArchivosBtn._files = fileList;
+  uploadArchivosBtn.disabled = false;
+}
+
+uploadArchivosBtn.addEventListener('click', async () => {
+  uploadArchivosBtn.disabled = true;
+  uploadArchivosBtn.textContent = 'Subiendo...';
+  resultArchivos.style.display = 'block';
+  resultArchivos.textContent = 'Subiendo…';
+  const fd = new FormData();
+  for (const f of uploadArchivosBtn._files) fd.append('files', f);
+  try {
+    const res = await fetch('/admin/archivos/subir', { method: 'POST', body: fd });
+    let data;
+    try {
+      data = await res.json();
+    } catch (parseErr) {
+      // Mismo caso que en Ventas de combustible: el servidor devolvió HTML, no JSON — no es
+      // un bug de esta app, es la infraestructura (Render dormido, o timeout del proxy).
+      resultArchivos.textContent =
+        `El servidor respondió con estado ${res.status} pero no en formato JSON — no es un ` +
+        `error de esta app, es la infraestructura (Render).\n\n` +
+        `Causas más probables:\n` +
+        `• La app estaba "dormida" (el plan gratis se apaga a los 15 min sin uso) y la ` +
+        `primera request la despertó a mitad de camino — esperá 30-60 segundos y volvé a ` +
+        `intentar.\n` +
+        `• El archivo es grande y el procesamiento superó el tiempo que tolera el proxy de ` +
+        `Render.`;
+      uploadArchivosBtn.disabled = false;
+      uploadArchivosBtn.textContent = 'Subir';
+      return;
+    }
+    if (data.error) {
+      resultArchivos.textContent = 'Error: ' + data.error;
+    } else {
+      let msg = `✅ Subidos: ${data.subidos.join(', ') || '(ninguno)'}`;
+      if (data.errores && data.errores.length) {
+        msg += `\n\n⚠ ${data.errores.map(e => `${e.filename}: ${e.error}`).join('\n')}`;
+      }
+      resultArchivos.textContent = msg;
+      setTimeout(() => location.reload(), 1200);
+    }
+  } catch (err) {
+    resultArchivos.style.display = 'block';
+    resultArchivos.textContent = 'Error de red: ' + err;
+  }
+  uploadArchivosBtn.disabled = false;
+  uploadArchivosBtn.textContent = 'Subir';
+});
+
+const borrarArchivosTodoBtn = document.getElementById('borrarArchivosTodoBtn');
+const resultBorrarArchivos = document.getElementById('resultBorrarArchivos');
+borrarArchivosTodoBtn.addEventListener('click', async () => {
+  const escrito = prompt(
+    'Esto borra TODOS los archivos guardados en esta sección, sin posibilidad de ' +
+    'deshacerlo.\n\nEscribí BORRAR (en mayúsculas) para confirmar:'
+  );
+  if (escrito !== 'BORRAR') {
+    if (escrito !== null) alert('No coincide con "BORRAR" — no se borró nada.');
+    return;
+  }
+  borrarArchivosTodoBtn.disabled = true;
+  borrarArchivosTodoBtn.textContent = 'Borrando...';
+  resultBorrarArchivos.style.display = 'block';
+  resultBorrarArchivos.textContent = 'Borrando…';
+  try {
+    const res = await fetch('/admin/archivos/borrar_todo', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirmar: 'BORRAR' }),
+    });
+    let data;
+    try {
+      data = await res.json();
+    } catch (parseErr) {
+      resultBorrarArchivos.textContent =
+        `El servidor respondió con estado ${res.status} pero no en formato JSON (posible ` +
+        `app "dormida" o timeout de Render) — esperá un momento y revisá si el borrado se ` +
+        `aplicó igual antes de reintentar.`;
+      borrarArchivosTodoBtn.disabled = false;
+      borrarArchivosTodoBtn.textContent = 'Borrar TODOS los archivos';
+      return;
+    }
+    if (data.error) {
+      resultBorrarArchivos.textContent = 'Error: ' + data.error;
+    } else {
+      resultBorrarArchivos.textContent = `Listo: se borraron ${data.borrados} archivo(s). Recargá la página.`;
+      setTimeout(() => location.reload(), 1200);
+    }
+  } catch (err) {
+    resultBorrarArchivos.style.display = 'block';
+    resultBorrarArchivos.textContent = 'Error de red: ' + err;
+  }
+  borrarArchivosTodoBtn.disabled = false;
+  borrarArchivosTodoBtn.textContent = 'Borrar TODOS los archivos';
+});
+
+async function borrarArchivo(id) {
+  if (!confirm('¿Borrar este archivo?')) return;
+  try {
+    const res = await fetch(`/admin/archivos/${id}/borrar`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok || data.error) { alert(data.error || `Error ${res.status}`); return; }
+    location.reload();
+  } catch (err) {
+    alert('Error de red: ' + err);
+  }
+}
+</script>
+</body>
+</html>
