@@ -70,6 +70,17 @@
   .glosario th, .glosario td { text-align: left; padding: 4px 8px; border-bottom: 1px solid #1e2748; }
   .glosario th { color: #7d87ab; font-weight: normal; }
   .glosario td:first-child { font-family: 'Cambria Math', Georgia, serif; color: #8fb2ff; white-space: nowrap; }
+
+  /* Calculadora "tendencia + elasticidad × supuesto", una por estimador */
+  .calc-supuesto { display: none; margin-top: 10px; border: 1px solid #2a3358; border-radius: 8px;
+                   background: #10162e; padding: 12px 14px; }
+  .calc-supuesto.show { display: block; }
+  .calc-supuesto .titulo { font-size: 12.5px; color: #8fb2ff; margin-bottom: 8px; }
+  .calc-supuesto .fila { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .calc-supuesto input[type=number] { width: 90px; }
+  .calc-supuesto .resultado { margin-top: 10px; font-size: 12.5px; color: #c8cfe6; line-height: 1.6; }
+  .calc-supuesto .resultado b.valor { color: #8fe3a2; font-size: 14px; }
+  .calc-supuesto button.usar { background: #1d6c4c; }
 </style>
 </head>
 <body>
@@ -180,6 +191,15 @@
           <tr><td>D<sub>m</sub>(t)</td><td>1 si t cae en el mes calendario m (feb.–dic.), 0 si no</td></tr>
           <tr><td>γ<sub>m</sub></td><td>Efecto de cada mes; se calcula pero no se usa afuera de esta regresión</td></tr>
         </table>
+        <b>MAPE de ajuste:</b> junto al resultado se muestra el Error Porcentual Absoluto
+        Medio de este modelo contra los datos con los que se ajustó —
+        <span class="formula" style="display:inline-block; padding:2px 8px; margin:0;">
+          (1/n)·Σ|y − ŷ|/y
+        </span> — un 8% de MAPE significa que, en promedio, el modelo se desvía 8% del dato
+        real de cada mes en su propia ventana de ajuste. Sirve para comparar entre sí los
+        cuatro estimadores de esta pantalla (este, FX, dólar blue, salarios), no para
+        prometer qué tan bien va a proyectar el futuro: agregar más variables casi siempre
+        baja este número aunque el modelo esté sobreajustado.
         <b>Importante:</b> esta es la misma familia de estimador (tendencia extrapolada por
         mínimos cuadrados) que en los backtests de este proyecto dio sistemáticamente peor
         que el método de nivel base + estacionalidad reciente que usa la proyección — sobre
@@ -413,6 +433,10 @@
           <tr><td>c</td><td><b>Elasticidad</b> — el número que se muestra: % de variación en el tráfico por cada 1% de variación en fx</td></tr>
           <tr><td>b</td><td>Tendencia de fondo, ya neta del efecto cambiario → exp(b·12) − 1</td></tr>
         </table>
+        <b>MAPE de ajuste:</b> el % que se muestra junto al resultado es el desvío promedio
+        de este modelo contra los datos con los que se ajustó (mismo cálculo que en "Estimar
+        con regresión" de arriba) — útil para comparar contra los otros tres estimadores de
+        esta pantalla, no como promesa de proyección futura.
         <b>Chequeo de confiabilidad — correlación con el tiempo:</b> si el tipo de cambio
         cargado se movió casi como una recta a lo largo de toda la ventana, esta regresión no
         puede separar bien "efecto cambiario" de "tendencia", y ambos coeficientes (b y c)
@@ -421,6 +445,17 @@
         de cambio (independiente del calendario) y más confiable la elasticidad estimada.
       </div>
     </details>
+
+    <div class="calc-supuesto" id="calc-fx-panel">
+      <div class="titulo">Convertir esta elasticidad en un crecimiento anual</div>
+      <div class="fila">
+        <span class="note" style="margin:0;">Si suponés que el tipo de cambio sube (o baja, con signo negativo)</span>
+        <input type="number" id="calc-fx-supuesto" value="0" step="1">
+        <span class="note" style="margin:0;">% en los próximos 12 meses:</span>
+        <button type="button" onclick="calcularConSupuesto('fx')">Calcular</button>
+      </div>
+      <div class="resultado" id="calc-fx-resultado"></div>
+    </div>
 
     <div class="row" style="align-items:center; gap:8px; margin-top:10px;">
       <span class="note" style="margin:0;">Rango de meses:</span>
@@ -498,11 +533,25 @@
           <tr><td>c</td><td><b>Elasticidad</b> — el número que se muestra</td></tr>
           <tr><td>b</td><td>Tendencia de fondo, ya neta del efecto cambiario → exp(b·12) − 1</td></tr>
         </table>
+        <b>MAPE de ajuste:</b> el % que se muestra junto al resultado sigue el mismo cálculo
+        que en los otros tres estimadores de esta pantalla — desvío promedio contra los
+        datos con los que se ajustó, no una promesa de proyección futura.
         Mismo chequeo de confiabilidad que el ITCRM y los salarios: cuanto más baja la
         correlación de log(blue_real) con el tiempo, más genuina —no un artefacto del
         calendario— es la variación que explica la elasticidad.
       </div>
     </details>
+
+    <div class="calc-supuesto" id="calc-blue-panel">
+      <div class="titulo">Convertir esta elasticidad en un crecimiento anual</div>
+      <div class="fila">
+        <span class="note" style="margin:0;">Si suponés que el dólar blue real sube (o baja, con signo negativo)</span>
+        <input type="number" id="calc-blue-supuesto" value="0" step="1">
+        <span class="note" style="margin:0;">% en los próximos 12 meses:</span>
+        <button type="button" onclick="calcularConSupuesto('blue')">Calcular</button>
+      </div>
+      <div class="resultado" id="calc-blue-resultado"></div>
+    </div>
 
     <div class="row" style="align-items:center; gap:8px; margin-top:10px;">
       <span class="note" style="margin:0;">Rango de meses:</span>
@@ -612,6 +661,9 @@
           <tr><td>c</td><td><b>Elasticidad</b> — el número que se muestra</td></tr>
           <tr><td>b</td><td>Tendencia de fondo, ya neta del efecto salarial → exp(b·12) − 1</td></tr>
         </table>
+        <b>MAPE de ajuste:</b> el % que se muestra junto al resultado sigue el mismo cálculo
+        que en los otros tres estimadores de esta pantalla — desvío promedio contra los
+        datos con los que se ajustó, no una promesa de proyección futura.
         La <b>correlación con el tiempo</b> que se muestra arriba junto al resultado es el
         chequeo de confiabilidad: con el salario <b>nominal</b> suele dar muy alta (cerca de
         1) porque en un país con inflación acumulada una serie nominal se mueve casi como una
@@ -620,6 +672,17 @@
         baja bastante, y el resultado se vuelve más creíble.
       </div>
     </details>
+
+    <div class="calc-supuesto" id="calc-sal-panel">
+      <div class="titulo">Convertir esta elasticidad en un crecimiento anual</div>
+      <div class="fila">
+        <span class="note" style="margin:0;">Si suponés que el salario elegido sube (o baja, con signo negativo)</span>
+        <input type="number" id="calc-sal-supuesto" value="0" step="1">
+        <span class="note" style="margin:0;">% en los próximos 12 meses:</span>
+        <button type="button" onclick="calcularConSupuesto('sal')">Calcular</button>
+      </div>
+      <div class="resultado" id="calc-sal-resultado"></div>
+    </div>
 
     <div class="row" style="align-items:center; gap:8px; margin-top:10px;">
       <span class="note" style="margin:0;">Rango de meses:</span>
@@ -1787,6 +1850,26 @@ function resolverSistema(A, b) {
   return M.map((fila, i) => fila[n] / fila[i]);
 }
 
+// MAPE (Error Porcentual Absoluto Medio) DE AJUSTE: qué tan bien el modelo ya estimado
+// reproduce los datos con los que se ajustó (in-sample), no un backtest fuera de muestra.
+// X y beta son los mismos de la regresión (X·beta = log ŷ); yLog es el log del valor real
+// de cada fila, en el mismo orden que X. Sirve para comparar la calidad de ajuste ENTRE
+// estimadores de esta pantalla (FX vs. dólar blue vs. salarios, etc.), no como una promesa
+// de qué tan bien va a proyectar el futuro — un MAPE de ajuste bajo es fácil de conseguir
+// agregando más variables, y no dice nada sobre overfitting. El backtest de verdad (fuera
+// de muestra, con múltiples orígenes) es el que está documentado aparte para el método
+// base de la proyección.
+function calcularMAPE(X, beta, yLog) {
+  let sumaError = 0;
+  for (let i = 0; i < X.length; i++) {
+    const yHatLog = X[i].reduce((acc, v, j) => acc + v * beta[j], 0);
+    const yHat = Math.exp(yHatLog);
+    const yReal = Math.exp(yLog[i]);
+    sumaError += Math.abs(yReal - yHat) / yReal;
+  }
+  return (sumaError / X.length) * 100;
+}
+
 // Ajusta log(y) = a + b·t + Σ(dummies mensuales) por mínimos cuadrados y devuelve el
 // crecimiento anual implícito. Se trabaja en logaritmos porque la estacionalidad del
 // consumo es multiplicativa (un enero es ~15% más alto que el mes promedio, no "+20.000 m³"
@@ -1814,7 +1897,8 @@ function estimarCrecimientoAnual(campo, meses) {
   }
   const beta = resolverSistema(XtX, Xty);
   if (!beta) return null;
-  return { crecimientoAnual: Math.exp(beta[1] * 12) - 1, n: datos.length };
+  return { crecimientoAnual: Math.exp(beta[1] * 12) - 1, n: datos.length,
+           mape: calcularMAPE(X, beta, y) };
 }
 
 function estimarCrecimiento() {
@@ -1839,7 +1923,10 @@ function estimarCrecimiento() {
     `<b>${(intl.crecimientoAnual * 100).toFixed(1)}%</b> anual. ` +
     `Son los valores que mejor explican la historia reciente, no un pronóstico: si sabés que ` +
     `viene una apertura o un cierre de rutas, conviene ajustarlos a mano o cargarlo como ruta ` +
-    `del escenario. Acordate de "Guardar supuestos".`;
+    `del escenario. Acordate de "Guardar supuestos".` +
+    `<br>MAPE de ajuste — cabotaje: <b>${cab.mape.toFixed(1)}%</b>, internacional: ` +
+    `<b>${intl.mape.toFixed(1)}%</b> (cuánto se desvía este modelo, en promedio, de los ` +
+    `datos con los que se ajustó; no es una promesa de qué tan bien va a proyectar).`;
   recalcular();
 }
 
@@ -1889,6 +1976,75 @@ function dibujarTablaFX() {
   }).join('');
 }
 
+// ---------------------------------------------------------------- calculadora de crecimiento
+// "tendencia de fondo + elasticidad × supuesto", compartida por los tres estimadores de
+// elasticidad (FX, dólar blue, salarios). El modelo detrás es el mismo log-lineal de cada
+// estimador: log y = a + b·t + c·log(x) + estacionalidad. Si además de la tendencia pura
+// (g = exp(b·12) − 1) se supone que la variable x va a variar un cierto % en el año, el
+// crecimiento total esperado de y es:
+//
+//   crecimiento_total = (1 + g) × (1 + supuesto)^elasticidad − 1
+//
+// (surge de sumar, en logaritmos, la tendencia de fondo más el aporte de la variable
+// —c·log(1+supuesto)— y volver a la escala normal con exp). Con supuesto = 0 da exactamente
+// la tendencia de fondo sola, que es el caso que ya se podía usar sin esta calculadora.
+let ULTIMOS_ESTIMADORES = {};  // 'fx' | 'blue' | 'sal' -> { elasticidad, tendencia, variable, campoDestino, ultimoResultado }
+
+function mostrarCalculadoraSupuesto(clave, elasticidad, tendencia, variable, campoDestino) {
+  ULTIMOS_ESTIMADORES[clave] = { elasticidad, tendencia, variable, campoDestino, ultimoResultado: null };
+  const panel = document.getElementById(`calc-${clave}-panel`);
+  const etiquetaFila = panel.querySelector('.fila .note');
+  if (etiquetaFila) {
+    etiquetaFila.textContent = `Si suponés que ${variable} sube (o baja, con signo negativo)`;
+  }
+  document.getElementById(`calc-${clave}-resultado`).innerHTML = '';
+  panel.classList.add('show');
+}
+
+function calcularConSupuesto(clave) {
+  const est = ULTIMOS_ESTIMADORES[clave];
+  const resultado = document.getElementById(`calc-${clave}-resultado`);
+  if (!est) { resultado.textContent = 'Corré "Estimar elasticidad" primero.'; return; }
+
+  const input = document.getElementById(`calc-${clave}-supuesto`);
+  const supuestoPct = parseFloat(input.value);
+  if (Number.isNaN(supuestoPct)) { resultado.textContent = 'Ingresá un número.'; return; }
+
+  const supuestoFrac = supuestoPct / 100;
+  if (supuestoFrac <= -1) {
+    resultado.textContent = 'El supuesto no puede ser -100% o menos (implicaría que la variable llega a cero o se vuelve negativa).';
+    return;
+  }
+
+  const factorVariable = Math.pow(1 + supuestoFrac, est.elasticidad);
+  const crecimientoTotal = (1 + est.tendencia) * factorVariable - 1;
+  est.ultimoResultado = crecimientoTotal;
+
+  const campoLabel = est.campoDestino === 'f-gcab' ? 'cabotaje' : 'internacional';
+  const signoTendencia = est.tendencia >= 0 ? '+' : '−';
+  const signoSupuesto = supuestoFrac >= 0 ? '+' : '−';
+  resultado.innerHTML =
+    `(1 ${signoTendencia} ${Math.abs(est.tendencia * 100).toFixed(1)}%) · ` +
+    `(1 ${signoSupuesto} ${Math.abs(supuestoPct).toFixed(1)}%)<sup>${est.elasticidad.toFixed(2)}</sup> ` +
+    `− 1 = <b class="valor">${crecimientoTotal >= 0 ? '+' : ''}${(crecimientoTotal * 100).toFixed(1)}%</b> ` +
+    `anual para ${campoLabel}` +
+    `<div class="fila" style="margin-top:8px;">` +
+    `<button type="button" class="usar" onclick="usarSupuestoEnCampo('${clave}')">` +
+    `Usar este valor en "Crecimiento anual ${campoLabel}"</button></div>`;
+}
+
+function usarSupuestoEnCampo(clave) {
+  const est = ULTIMOS_ESTIMADORES[clave];
+  if (!est || est.ultimoResultado == null) return;
+  const campo = document.getElementById(est.campoDestino);
+  campo.value = (est.ultimoResultado * 100).toFixed(1);
+  campo.style.background = '#1d6c4c';
+  setTimeout(() => {
+    campo.style.transition = 'background 1.2s';
+    campo.style.background = '';
+  }, 50);
+}
+
 // Ajusta log(internacional) = a + b·tiempo + c·log(tipo_de_cambio) + estacionalidad, por
 // mínimos cuadrados, sobre los meses donde SERIE y FX se superponen. El coeficiente c es
 // la elasticidad: cuánto varía el tráfico internacional por cada 1% de variación del tipo
@@ -1899,6 +2055,7 @@ function dibujarTablaFX() {
 // número con la ruta puesta, no asumirlo.
 function estimarElasticidadFX() {
   const msg = document.getElementById('elasticidad-msg');
+  document.getElementById('calc-fx-panel').classList.remove('show');
   if (FX.length < 24) {
     msg.style.color = '#ff9a9a';
     msg.textContent = 'Hacen falta al menos 24 meses de tipo de cambio cargados para poder ' +
@@ -1958,6 +2115,7 @@ function estimarElasticidadFX() {
   const vt = ts.reduce((acc, t) => acc + (t - mt) ** 2, 0) / ts.length;
   const vl = logs.reduce((acc, l) => acc + (l - ml) ** 2, 0) / logs.length;
   const correlacionConTiempo = cov / Math.sqrt(vt * vl);
+  const mape = calcularMAPE(X, beta, y);
 
   msg.style.color = Math.abs(correlacionConTiempo) > 0.9 ? '#ffb347' : '#9aa4c7';
   msg.innerHTML = `Sobre ${datos.length} meses: elasticidad del tráfico internacional al ` +
@@ -1965,6 +2123,8 @@ function estimarElasticidadFX() {
     `se asocia con ${elasticidad >= 0 ? 'un' : 'una caída del'} ${Math.abs(elasticidad).toFixed(2)}% ` +
     `${elasticidad >= 0 ? 'de aumento' : ''} en el tráfico). Tendencia de fondo (ya neta del ` +
     `efecto cambiario): <b>${(crecimientoAnual * 100).toFixed(1)}%</b> anual.` +
+    `<br>MAPE de ajuste: <b>${mape.toFixed(1)}%</b> (desvío promedio de este modelo contra ` +
+    `los datos con los que se ajustó).` +
     `<br>Correlación del tipo de cambio cargado con el tiempo: <b>${correlacionConTiempo.toFixed(2)}</b>` +
     (Math.abs(correlacionConTiempo) > 0.9
       ? ' — alta: si es un dólar nominal sin deflactar, se mueve casi como una recta y este ' +
@@ -1973,6 +2133,8 @@ function estimarElasticidadFX() {
     ` Este número es informativo — no pisa el campo "Crecimiento anual internacional" solo, ` +
     `porque para proyectarlo hacia adelante hace falta ADEMÁS un supuesto de hacia dónde va ` +
     `el tipo de cambio, que es tan una apuesta como cualquier otro supuesto de esta pantalla.`;
+
+  mostrarCalculadoraSupuesto('fx', elasticidad, crecimientoAnual, 'tipo de cambio', 'f-gintl');
 }
 
 // ---------------------------------------------------------------- índice salarial
@@ -2387,6 +2549,7 @@ async function subirDolarBlue() {
 
 function estimarElasticidadDolarBlue() {
   const msg = document.getElementById('elasticidad-blue-msg');
+  document.getElementById('calc-blue-panel').classList.remove('show');
   const { serie, motivo } = calcularDolarBlueReal();
   if (!serie) {
     msg.style.color = '#ff9a9a';
@@ -2450,6 +2613,7 @@ function estimarElasticidadDolarBlue() {
   const vt = ts.reduce((acc, t) => acc + (t - mt) ** 2, 0) / ts.length;
   const vl = logs.reduce((acc, l) => acc + (l - ml) ** 2, 0) / logs.length;
   const correlacionConTiempo = cov / Math.sqrt(vt * vl);
+  const mape = calcularMAPE(X, beta, y);
 
   msg.style.color = Math.abs(correlacionConTiempo) > 0.9 ? '#ffb347' : '#9aa4c7';
   msg.innerHTML = `Sobre ${datos.length} meses: elasticidad del tráfico internacional al ` +
@@ -2457,6 +2621,8 @@ function estimarElasticidadDolarBlue() {
     `real se asocia con ${elasticidad >= 0 ? 'un' : 'una caída del'} ${Math.abs(elasticidad).toFixed(2)}% ` +
     `${elasticidad >= 0 ? 'de aumento' : ''} en el tráfico). Tendencia de fondo (ya neta del ` +
     `efecto cambiario): <b>${(crecimientoAnual * 100).toFixed(1)}%</b> anual.` +
+    `<br>MAPE de ajuste: <b>${mape.toFixed(1)}%</b> (desvío promedio de este modelo contra ` +
+    `los datos con los que se ajustó).` +
     `<br>Correlación del dólar blue real con el tiempo: <b>${correlacionConTiempo.toFixed(2)}</b>` +
     (Math.abs(correlacionConTiempo) > 0.9
       ? ' — alta: tratá este resultado como poco confiable, la variación se parece ' +
@@ -2465,6 +2631,8 @@ function estimarElasticidadDolarBlue() {
         'calendario, así que este resultado es más confiable que uno con una serie nominal.') +
     ` Este número es informativo — no pisa el campo "Crecimiento anual internacional" solo, ` +
     `por el mismo motivo que el ITCRM de arriba.`;
+
+  mostrarCalculadoraSupuesto('blue', elasticidad, crecimientoAnual, 'dólar blue real', 'f-gintl');
 }
 
 function serieSalarialElegida() {
@@ -2495,6 +2663,7 @@ function dibujarTablaSalarios() {
 // salario es lo que mueve el viaje interno, el tipo de cambio pega más sobre el internacional.
 function estimarElasticidadSalarios() {
   const msg = document.getElementById('elasticidad-salarios-msg');
+  document.getElementById('calc-sal-panel').classList.remove('show');
   const serie = serieSalarialElegida();
   if (serie.length < 24) {
     msg.style.color = '#ff9a9a';
@@ -2555,6 +2724,7 @@ function estimarElasticidadSalarios() {
   const vt = ts.reduce((acc, t) => acc + (t - mt) ** 2, 0) / ts.length;
   const vl = logs.reduce((acc, l) => acc + (l - ml) ** 2, 0) / logs.length;
   const correlacionConTiempo = cov / Math.sqrt(vt * vl);
+  const mape = calcularMAPE(X, beta, y);
 
   msg.style.color = Math.abs(correlacionConTiempo) > 0.9 ? '#ffb347' : '#9aa4c7';
   msg.innerHTML = `Sobre ${datos.length} meses: elasticidad del cabotaje al salario ` +
@@ -2562,6 +2732,8 @@ function estimarElasticidadSalarios() {
     `<b>${elasticidad.toFixed(2)}</b> (cada 1% de suba del salario se asocia con ` +
     `${elasticidad >= 0 ? 'un aumento' : 'una caída'} de ${Math.abs(elasticidad).toFixed(2)}% ` +
     `en el tráfico de cabotaje). Tendencia de fondo: <b>${(crecimientoAnual * 100).toFixed(1)}%</b> anual.` +
+    `<br>MAPE de ajuste: <b>${mape.toFixed(1)}%</b> (desvío promedio de este modelo contra ` +
+    `los datos con los que se ajustó).` +
     `<br>Correlación del salario elegido con el tiempo: <b>${correlacionConTiempo.toFixed(2)}</b>` +
     (Math.abs(correlacionConTiempo) > 0.9
       ? ' — alta: el índice es nominal y se mueve casi como una recta, así que tratá este ' +
@@ -2570,6 +2742,9 @@ function estimarElasticidadSalarios() {
     ` Este número es informativo — no pisa el campo "Crecimiento anual cabotaje" solo, ` +
     `porque para proyectarlo hacia adelante hace falta además un supuesto de hacia dónde va ` +
     `el salario real.`;
+
+  const nombreSerie = document.getElementById('fsal-serie').selectedOptions[0].text;
+  mostrarCalculadoraSupuesto('sal', elasticidad, crecimientoAnual, nombreSerie, 'f-gcab');
 }
 
 async function guardarConfig() {
