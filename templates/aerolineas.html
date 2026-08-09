@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Aerolíneas — Rutas Aéreas Argentinas</title>
+<style>
+  body { font-family: Arial, sans-serif; background: #0b1020; color: #eee; margin: 0; padding: 30px; }
+  .wrap { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 20px; }
+  h2 { font-size: 15px; color: #9aa4c7; border-bottom: 1px solid #2a3358; padding-bottom: 8px; margin-top: 30px; }
+  .card { background: #10162e; border: 1px solid #2a3358; border-radius: 12px; padding: 20px 24px; margin-bottom: 20px; }
+  a.back { color: #9aa4c7; font-size: 12px; }
+  select { padding: 6px 10px; border-radius: 6px; border: 1px solid #3a4470; background: #0b1020; color: #fff; font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid #2a3358; }
+  th { color: #9aa4c7; font-weight: normal; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.total { font-weight: bold; background: rgba(76,124,240,0.08); }
+  .empty { color: #9aa4c7; font-size: 13px; padding: 10px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p><a href="/" class="back">← Volver al mapa</a></p>
+  <h1>📊 Aerolíneas — Vuelos, Pasajeros y Ocupación</h1>
+  <p style="color:#9aa4c7; font-size:13px;">Fuente: Informes Mensuales de ANAC, cargados desde /admin.</p>
+
+  {% if meses_disponibles %}
+  <div class="card">
+    <form method="get" style="display:flex; align-items:center; gap:10px;">
+      <label style="font-size:13px; color:#9aa4c7;">Mes:</label>
+      <select name="periodo" onchange="const [a,m]=this.value.split('-'); location.href='/aerolineas?anio='+a+'&mes='+m;">
+        {% for anio, mes in meses_disponibles %}
+        <option value="{{ anio }}-{{ mes }}" {% if anio==anio_sel and mes==mes_sel %}selected{% endif %}>
+          {{ '%02d'|format(mes) }}/{{ anio }}
+        </option>
+        {% endfor %}
+      </select>
+    </form>
+  </div>
+
+  <h2>Cabotaje</h2>
+  <div class="card">
+    {% if cabotaje %}
+    <table>
+      <tr><th>Aerolínea</th><th class="num">Vuelos</th><th class="num">Pax [000]</th><th class="num">Ocupación</th></tr>
+      {% for r in cabotaje %}
+      <tr>
+        <td>{{ r.aerolinea }}</td>
+        <td class="num">{{ "{:,}".format(r.vuelos).replace(",", ".") }}</td>
+        <td class="num">{{ "{:,}".format(r.pax_000).replace(",", ".") }}</td>
+        <td class="num">{{ (r.ocupacion * 100) | round(0) | int }}%</td>
+      </tr>
+      {% endfor %}
+      {% if total_cabotaje %}
+      <tr class="total">
+        <td>TOTAL</td>
+        <td class="num">{{ "{:,}".format(total_cabotaje.vuelos).replace(",", ".") }}</td>
+        <td class="num">{{ "{:,}".format(total_cabotaje.pax_000).replace(",", ".") }}</td>
+        <td class="num">{{ (total_cabotaje.ocupacion * 100) | round(0) | int }}%</td>
+      </tr>
+      {% endif %}
+    </table>
+    {% else %}
+    <div class="empty">Sin datos de cabotaje para este mes.</div>
+    {% endif %}
+  </div>
+
+  <h2>Internacional</h2>
+  <div class="card">
+    {% if internacional %}
+    <table>
+      <tr><th>Aerolínea</th><th class="num">Vuelos</th><th class="num">Pax [000]</th><th class="num">Ocupación</th></tr>
+      {% for r in internacional %}
+      <tr>
+        <td>{{ r.aerolinea }}</td>
+        <td class="num">{{ "{:,}".format(r.vuelos).replace(",", ".") }}</td>
+        <td class="num">{{ "{:,}".format(r.pax_000).replace(",", ".") }}</td>
+        <td class="num">{{ (r.ocupacion * 100) | round(0) | int }}%</td>
+      </tr>
+      {% endfor %}
+      {% if total_internacional %}
+      <tr class="total">
+        <td>TOTAL</td>
+        <td class="num">{{ "{:,}".format(total_internacional.vuelos).replace(",", ".") }}</td>
+        <td class="num">{{ "{:,}".format(total_internacional.pax_000).replace(",", ".") }}</td>
+        <td class="num">{{ (total_internacional.ocupacion * 100) | round(0) | int }}%</td>
+      </tr>
+      {% endif %}
+    </table>
+    {% else %}
+    <div class="empty">Sin datos internacionales para este mes.</div>
+    {% endif %}
+  </div>
+
+  {% else %}
+  <div class="card">
+    <div class="empty">
+      Todavía no se cargó ningún informe. Subí el PDF del Informe Mensual de ANAC desde
+      <a href="/admin" style="color:#4c7cf0;">/admin</a>.
+    </div>
+  </div>
+  {% endif %}
+</div>
+</body>
+</html>

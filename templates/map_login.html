@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Acceso — Mapa de Rutas YPF Aviación</title>
+<style>
+  body { font-family: Arial, sans-serif; background: #0b1020; color: #eee; display: flex;
+         align-items: center; justify-content: center; height: 100vh; margin: 0; }
+  form { background: #10162e; padding: 30px 36px; border-radius: 12px; border: 1px solid #2a3358; width: 320px; }
+  h1 { font-size: 18px; margin-top: 0; }
+  p.subtitle { color: #9aa4c7; font-size: 12.5px; margin-top: -6px; margin-bottom: 16px; }
+  input { width: 100%; padding: 10px; margin: 10px 0; border-radius: 6px; border: 1px solid #3a4470;
+          background: #1a2144; color: #fff; box-sizing: border-box; font-size: 14px; }
+  button { width: 100%; padding: 10px; border-radius: 6px; border: none; background: #4c7cf0;
+           color: #fff; font-weight: bold; cursor: pointer; }
+  button:hover { background: #3d68d8; }
+  .error { color: #e0663f; font-size: 12.5px; margin: -4px 0 10px 0; }
+</style>
+</head>
+<body>
+  <form method="POST" action="/login">
+    <h1>🔒 Mapa de Rutas — YPF Aviación</h1>
+    <p class="subtitle">Ingresá la clave de acceso para ver el mapa.</p>
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+    <input type="password" name="password" placeholder="Clave de acceso" required autofocus>
+    <button type="submit">Entrar</button>
+  </form>
+</body>
+</html>

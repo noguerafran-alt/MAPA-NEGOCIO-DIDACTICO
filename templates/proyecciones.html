@@ -1,0 +1,2644 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proyecciones de consumo Jet A-1 — YPF Aviación</title>
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<style>
+  body { font-family: Arial, sans-serif; background: #0b1020; color: #eee; margin: 0; padding: 24px; }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 6px 0 4px; }
+  h2 { font-size: 15px; color: #9aa4c7; border-bottom: 1px solid #2a3358; padding-bottom: 8px; margin-top: 28px; }
+  a.back { color: #9aa4c7; font-size: 12px; text-decoration: none; }
+  a.back:hover { text-decoration: underline; }
+  .sub { color: #9aa4c7; font-size: 13px; margin: 0 0 16px; }
+  .card { background: #10162e; border: 1px solid #2a3358; border-radius: 12px; padding: 18px 22px; margin-bottom: 18px; }
+  label { font-size: 12px; color: #9aa4c7; }
+  input, select { padding: 6px 9px; border-radius: 6px; border: 1px solid #3a4470; background: #0b1020; color: #fff; font-size: 13px; }
+  input[type=number] { width: 88px; }
+  button { padding: 7px 14px; border-radius: 7px; border: 1px solid #3a4470; background: #1a2247; color: #fff; font-size: 13px; cursor: pointer; }
+  button:hover { background: #243060; }
+  button.primary { background: #2f4bb0; border-color: #4c7cf0; }
+  button.primary:hover { background: #3a5bd0; }
+  button.danger { background: #4a1f2a; border-color: #7a3244; }
+  button.danger:hover { background: #66293a; }
+  button.small { padding: 4px 9px; font-size: 11px; }
+  .year-mosaic { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 14px; }
+  .year-tile { padding: 5px 10px; border-radius: 6px; border: 1px solid #3a4470;
+               background: #1a2247; color: #c8cfe6; font-size: 12px; cursor: pointer;
+               font-variant-numeric: tabular-nums; }
+  .year-tile:hover { background: #243060; }
+  .year-tile.active { background: #2f4bb0; border-color: #4c7cf0; color: #fff; }
+  .year-tile.especial { border-style: dashed; }
+  .year-tile.proyectado { color: #ffb347; border-color: #6b551f; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+  th, td { text-align: left; padding: 7px 9px; border-bottom: 1px solid #2a3358; }
+  th { color: #9aa4c7; font-weight: normal; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .empty { color: #9aa4c7; font-size: 13px; padding: 12px 0; }
+  .row { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .kpis { display: flex; flex-wrap: wrap; gap: 14px; }
+  .kpi { flex: 1 1 190px; background: #0e1430; border: 1px solid #2a3358; border-radius: 10px; padding: 12px 14px; }
+  .kpi .k { font-size: 11px; color: #9aa4c7; text-transform: uppercase; letter-spacing: .04em; }
+  .kpi .v { font-size: 21px; font-variant-numeric: tabular-nums; margin-top: 3px; }
+  .kpi .n { font-size: 11px; color: #7d87ab; margin-top: 3px; }
+  .note { font-size: 12px; color: #9aa4c7; line-height: 1.55; }
+  .warn { background: rgba(240,180,60,0.08); border: 1px solid #6b551f; border-radius: 8px; padding: 10px 13px; font-size: 12px; color: #e3c98a; margin-top: 10px; }
+  .err { color: #ff9a9a; font-size: 12px; min-height: 16px; }
+  .ok { color: #8fe3a2; font-size: 12px; min-height: 16px; }
+  .pill { font-size: 10px; padding: 2px 7px; border-radius: 10px; border: 1px solid #3a4470; color: #9aa4c7; }
+  .pill.real { border-color: #2f6b45; color: #8fe3a2; }
+  .pill.neg { border-color: #7a3244; color: #ff9a9a; }
+  #chart { width: 100%; height: 520px; }
+
+  /* Panel desplegable "¿Cómo se calcula esto?", uno por estimador */
+  details.explicacion { margin-top: 10px; border: 1px solid #2a3358; border-radius: 8px;
+                        background: #0d1330; }
+  details.explicacion summary { cursor: pointer; padding: 8px 12px; font-size: 12.5px;
+                                color: #8fb2ff; list-style: none; user-select: none; }
+  details.explicacion summary::-webkit-details-marker { display: none; }
+  details.explicacion summary::before { content: '▸ '; }
+  details.explicacion[open] summary::before { content: '▾ '; }
+  details.explicacion .contenido { padding: 4px 14px 14px; font-size: 12.5px;
+                                   color: #c8cfe6; line-height: 1.6; }
+  .formula { background: #10162e; border: 1px solid #2a3358; border-radius: 6px;
+            padding: 8px 12px; margin: 8px 0; font-family: 'Cambria Math', Georgia, serif;
+            font-size: 13.5px; color: #e4e8f5; text-align: center; overflow-x: auto; }
+  .glosario { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
+  .glosario th, .glosario td { text-align: left; padding: 4px 8px; border-bottom: 1px solid #1e2748; }
+  .glosario th { color: #7d87ab; font-weight: normal; }
+  .glosario td:first-child { font-family: 'Cambria Math', Georgia, serif; color: #8fb2ff; white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p><a href="/" class="back">← Volver al mapa</a></p>
+  <h1 id="titulo-proyeccion">📈 Proyección de consumo de Jet A-1 en Argentina</h1>
+  <p class="sub">
+    Combustible cargado en aeropuertos argentinos, estimado desde el tráfico de ANAC más el
+    modelo de asignación de avión por ocupación. Podés agregar o dar de baja rutas para ver
+    cómo impactarían a futuro, sin pasar por el panel de admin.
+  </p>
+
+  <div class="card" style="padding:14px 22px;">
+    <div class="row" style="align-items:center;">
+      <div class="field">
+        <label for="f-aeroplanta">Aeroplanta</label>
+        <select id="f-aeroplanta" style="min-width:220px;">
+          <option value="">Todo el país</option>
+        </select>
+      </div>
+      <div class="note" id="aeroplanta-note" style="flex:1; min-width:220px;"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="kpis" id="kpis"><div class="empty">Cargando…</div></div>
+  </div>
+
+  <div class="card">
+    <div class="year-mosaic" id="year-mosaic"></div>
+
+    <div class="row" style="align-items:center; gap:8px; margin-bottom:12px;">
+      <span class="note" style="margin:0;">Rango de meses (además de los botones de arriba):</span>
+      <select id="rango-desde" onchange="aplicarRangoMeses()" style="min-width:130px;"></select>
+      <span class="note" style="margin:0;">hasta</span>
+      <select id="rango-hasta" onchange="aplicarRangoMeses()" style="min-width:130px;"></select>
+      <button type="button" onclick="limpiarRangoMeses()" style="padding:6px 12px; font-size:12.5px;">
+        Limpiar rango
+      </button>
+    </div>
+
+    <div id="chart"></div>
+    <div class="note" id="chart-note" style="margin-top:10px;"></div>
+    <div class="note" id="chart-exclusiones-note" style="margin-top:4px; color:#ff9ab0;"></div>
+
+    <div style="margin-top:14px; padding-top:12px; border-top:1px solid #2a3358;">
+      <div class="row" style="align-items:center; gap:10px;">
+        <span class="note" style="margin:0;">¿Falta el despacho real de algún mes en el gráfico?</span>
+        <input type="number" id="fd-anio" placeholder="Año" style="width:80px;">
+        <input type="number" id="fd-mes" placeholder="Mes (1-12)" min="1" max="12" style="width:100px;">
+        <button onclick="verificarDespachoReal()">Verificar</button>
+      </div>
+      <div class="note" id="fd-resultado" style="margin-top:8px;"></div>
+    </div>
+  </div>
+
+  <h2>Supuestos de la proyección</h2>
+  <div class="card">
+    <div class="row">
+      <div class="field">
+        <label for="f-horizonte">Horizonte (meses)</label>
+        <input type="number" id="f-horizonte" min="1" max="120" value="24">
+      </div>
+      <div class="field">
+        <label for="f-gcab">Crecimiento anual cabotaje (%)</label>
+        <input type="number" id="f-gcab" step="0.5" min="-50" max="50" value="3">
+      </div>
+      <div class="field">
+        <label for="f-gintl">Crecimiento anual internacional (%)</label>
+        <input type="number" id="f-gintl" step="0.5" min="-50" max="50" value="4">
+      </div>
+      <div class="field">
+        <label for="f-anios">Años para la estacionalidad</label>
+        <input type="number" id="f-anios" min="1" max="10" value="3">
+      </div>
+      <div class="field">
+        <label style="display:flex; align-items:center; gap:6px; padding-bottom:7px;">
+          <input type="checkbox" id="f-excluir-covid" checked style="width:auto;">
+          Excluir 2020-2021
+        </label>
+      </div>
+      <div class="field">
+        <button class="primary" onclick="guardarConfig()">Guardar supuestos</button>
+      </div>
+      <div class="field">
+        <button onclick="estimarCrecimiento()" title="Ajusta log(consumo) = a + b·t + estacionalidad mensual por mínimos cuadrados sobre los últimos años, y usa la pendiente como crecimiento anual. Reemplaza los valores de arriba.">Estimar con regresión</button>
+      </div>
+    </div>
+    <div class="err" id="cfg-msg"></div>
+    <div class="note" id="regresion-msg" style="margin-top:6px;"></div>
+
+    <details class="explicacion">
+      <summary>¿Cómo se calcula esto?</summary>
+      <div class="contenido">
+        Regresión log-lineal con estacionalidad por variables mensuales (dummies), sobre los
+        últimos meses (ventana = "Años para la estacionalidad" × 12, mínimo 24):
+        <div class="formula">
+          log y(t) = a + b·t + Σ<sub>m=2</sub><sup>12</sup> γ<sub>m</sub>·D<sub>m</sub>(t) + ε(t)
+        </div>
+        El crecimiento anual que se muestra es <b>g = exp(b·12) − 1</b>: la pendiente
+        <b>b</b> convertida de tasa logarítmica mensual a tasa anual compuesta.
+        <table class="glosario">
+          <tr><th>Símbolo</th><th>Qué es</th></tr>
+          <tr><td>y(t)</td><td>Cabotaje o internacional (m³) del mes t, según qué campo se estima</td></tr>
+          <tr><td>t</td><td>Índice de mes dentro de la ventana (0, 1, 2…)</td></tr>
+          <tr><td>a</td><td>Constante (nivel logarítmico de enero)</td></tr>
+          <tr><td>b</td><td>Pendiente mensual en logaritmos → g = exp(b·12) − 1</td></tr>
+          <tr><td>D<sub>m</sub>(t)</td><td>1 si t cae en el mes calendario m (feb.–dic.), 0 si no</td></tr>
+          <tr><td>γ<sub>m</sub></td><td>Efecto de cada mes; se calcula pero no se usa afuera de esta regresión</td></tr>
+        </table>
+        <b>Importante:</b> esta es la misma familia de estimador (tendencia extrapolada por
+        mínimos cuadrados) que en los backtests de este proyecto dio sistemáticamente peor
+        que el método de nivel base + estacionalidad reciente que usa la proyección — sobre
+        todo si la ventana incluye un salto discontinuo (una devaluación) en el medio. Sirve
+        como referencia de "qué venía pasando"; no es necesariamente el mejor valor para
+        proyectar el futuro.
+      </div>
+    </details>
+    <div class="note" style="margin-top:8px;">
+      La estacionalidad sale del promedio de cada mes en los últimos años elegidos, normalizada
+      para que el promedio anual dé 1. El nivel de partida son los últimos 12 meses con dato
+      real, y sobre eso se aplica el crecimiento compuesto.
+    </div>
+    <div class="warn" id="covid-warn" style="display:none;"></div>
+    <div style="margin-top:12px;">
+      <button onclick="verCoberturaAnac()" id="btn-cobertura">Ver cobertura de datos de ANAC</button>
+      <div id="cobertura-anac" style="display:none; margin-top:10px;"></div>
+    </div>
+  </div>
+
+  <h2>Eventos excluidos</h2>
+  <div class="card">
+    <p class="note" style="margin:0 0 12px;">
+      Ventanas de fechas que no representan demanda real — cierre de pista por obras, corte
+      de suministro puntual, falla operativa — y que por eso no deberían pesar en la
+      estacionalidad ni en el nivel de partida de la proyección. El mes sigue viéndose en el
+      gráfico (no se borra el dato), solo se lo salta al calcular. Con "Todo el país", el
+      evento aplica en cualquier vista; atado a una aeroplanta puntual, solo afecta cuando
+      estás mirando esa aeroplanta.
+    </p>
+    <div class="row" style="margin-bottom:12px;">
+      <div class="field">
+        <label for="fx-aeroplanta">Aeroplanta</label>
+        <select id="fx-aeroplanta" style="min-width:180px;"><option value="">Todo el país</option></select>
+      </div>
+      <div class="field">
+        <label for="fx-desde">Desde</label>
+        <input type="month" id="fx-desde">
+      </div>
+      <div class="field">
+        <label for="fx-hasta">Hasta</label>
+        <input type="month" id="fx-hasta">
+      </div>
+      <div class="field" style="flex:1; min-width:220px;">
+        <label for="fx-motivo">Motivo</label>
+        <input type="text" id="fx-motivo" placeholder="Ej. Cierre de pista por obras" style="width:100%;">
+      </div>
+      <div class="field">
+        <button class="primary" onclick="guardarExclusion()" id="btnx-guardar">Agregar</button>
+      </div>
+      <div class="field">
+        <button onclick="limpiarFormExclusion()" id="btnx-cancelar" style="display:none;">Cancelar</button>
+      </div>
+    </div>
+    <div class="err" id="exclusion-msg"></div>
+    <table>
+      <thead>
+        <tr><th>Aeroplanta</th><th>Motivo</th><th>Ventana</th><th></th></tr>
+      </thead>
+      <tbody id="tbody-exclusiones"><tr><td colspan="4" class="empty">Cargando…</td></tr></tbody>
+    </table>
+  </div>
+
+  <h2>Rutas del escenario</h2>
+  <div class="card">
+    <div class="note" id="rutas-aeroplanta-note" style="display:none; margin-bottom:10px;"></div>
+    <div class="row" style="margin-bottom:12px;">
+      <div class="field">
+        <label for="f-origin">Origen</label>
+        <input list="dl-aeropuertos" id="f-origin" placeholder="Ej. Córdoba" style="width:170px;">
+      </div>
+      <div class="field">
+        <label for="f-dest">Destino</label>
+        <input list="dl-aeropuertos" id="f-dest" placeholder="Ej. Salta" style="width:170px;">
+      </div>
+      <div class="field">
+        <label for="f-vuelos">Vuelos/mes</label>
+        <input type="number" id="f-vuelos" min="0" value="60">
+      </div>
+      <div class="field">
+        <label for="f-pax">Pax/vuelo</label>
+        <input type="number" id="f-pax" min="1" max="900" value="80">
+      </div>
+      <div class="field">
+        <label for="f-avion">Avión</label>
+        <select id="f-avion" style="width:190px;"><option value="">Automático (por ocupación)</option></select>
+      </div>
+      <div class="field">
+        <label for="f-signo">Tipo</label>
+        <select id="f-signo">
+          <option value="1">Alta (suma)</option>
+          <option value="-1">Baja (resta)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-desde">Desde</label>
+        <input type="month" id="f-desde">
+      </div>
+      <div class="field">
+        <label for="f-hasta">Hasta (opcional)</label>
+        <input type="month" id="f-hasta">
+      </div>
+      <div class="field">
+        <button class="primary" onclick="guardarRuta()" id="btn-guardar">Agregar ruta</button>
+      </div>
+      <div class="field">
+        <button onclick="limpiarForm()" id="btn-cancelar" style="display:none;">Cancelar</button>
+      </div>
+    </div>
+    <datalist id="dl-aeropuertos"></datalist>
+    <div class="err" id="ruta-msg"></div>
+    <div class="note" id="preview" style="margin-top:6px;"></div>
+
+    <table id="tabla-rutas">
+      <thead>
+        <tr>
+          <th>Ruta</th><th>Tipo</th><th>Avión asignado</th>
+          <th class="num">Vuelos/mes</th><th class="num">Pax/vuelo</th>
+          <th class="num">m³/vuelo</th><th class="num">m³/mes</th>
+          <th>Vigencia</th><th></th>
+        </tr>
+      </thead>
+      <tbody id="tbody-rutas"><tr><td colspan="9" class="empty">Cargando…</td></tr></tbody>
+    </table>
+  </div>
+
+  <h2>Detalle mes a mes</h2>
+  <div class="card">
+    <div style="max-height:480px; overflow-y:auto;">
+    <table>
+      <thead style="position:sticky; top:0; background:#10162e; z-index:1;">
+        <tr>
+          <th>Período</th><th></th>
+          <th class="num">Cabotaje (m³)</th><th class="num">Internacional (m³)</th>
+          <th class="num">Rutas del escenario (m³)</th>
+          <th class="num">Total (m³)</th><th class="num">Total (t)</th>
+          <th class="num" title="Despacho de YPF del mes. Prioridad al Excel de despachos (FuelSale); si ese mes no se subió, se usa la columna YPF de la planilla de mercado, marcada con la etiqueta 'mercado'. Al filtrar por aeroplanta el respaldo no aplica: la planilla de mercado es un total nacional.">Despacho YPF real (m³)</th>
+          <th class="num" title="Despacho real de YPF sobre el total nacional que estima el modelo. Es un share de mercado, no un error del modelo.">% Real/Modelo</th>
+          <th class="num" title="Total del mercado argentino según la planilla propia por empresa.">Mercado real (m³)</th>
+          <th class="num" title="Cuánto se desvía el modelo del total real del mercado. ESTE sí es el error del modelo.">Desvío modelo</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-detalle"><tr><td colspan="11" class="empty">Cargando…</td></tr></tbody>
+    </table>
+    </div>
+  </div>
+
+  <h2>Mercado real por empresa (calibración)</h2>
+  <div class="card">
+    <p class="note" style="margin:0 0 12px;">
+      Acá se carga el volumen real del mercado argentino mes a mes, desagregado por empresa.
+      Es lo que permite medir el <b>error real del modelo</b>: el despacho de YPF solo da un
+      share de mercado, no un error. Con el total del mercado, el cociente modelo/real sí
+      dice cuánto se le está errando.
+      <br>Formato esperado: columna <b>A</b> = mes en castellano, <b>B</b> = año,
+      <b>C</b> = TOTAL, <b>D</b> = YPF, <b>E</b> = AXION, <b>F</b> = SHELL. Los meses del año
+      todavía sin datos se saltean solos, así podés subir la planilla completa cada mes.
+    </p>
+    <div class="row" style="align-items:center;">
+      <div class="field">
+        <label for="fm-file">Planilla de mercado (.xlsx)</label>
+        <input type="file" id="fm-file" accept=".xlsx,.xlsm">
+      </div>
+      <div class="field">
+        <button class="primary" onclick="subirMercado()">Subir</button>
+      </div>
+    </div>
+    <div class="err" id="fm-msg"></div>
+
+    <div class="kpis" id="kpis-mercado" style="margin-top:14px;"></div>
+
+    <table style="margin-top:12px;">
+      <thead>
+        <tr>
+          <th>Período</th>
+          <th class="num">Total mercado (m³)</th>
+          <th class="num">YPF (m³)</th><th class="num">AXION (m³)</th>
+          <th class="num">SHELL (m³)</th><th class="num">Otros (m³)</th>
+          <th class="num">Share YPF</th>
+          <th class="num">Modelo (m³)</th><th class="num">Desvío</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-mercado"><tr><td colspan="9" class="empty">Sin datos de mercado cargados.</td></tr></tbody>
+    </table>
+  </div>
+
+  <h2>Tipo de cambio (elasticidad de la demanda internacional)</h2>
+  <div class="card">
+    <p class="note" style="margin:0 0 12px;">
+      Cargá una serie mensual de tipo de cambio para estimar cuánto responde el tráfico
+      <b>internacional</b> a las variaciones cambiarias — el cabotaje no debería reaccionar
+      tanto al dólar, así que la elasticidad solo se calcula para el segmento internacional.
+      <br>Mejor usar un índice de tipo de cambio <b>real</b> (ajustado por inflación, como el
+      <a href="https://www.bcra.gob.ar/PublicacionesEstadisticas/Indices_tipo_cambio_multilateral.asp"
+         target="_blank" style="color:#8fb2ff;">ITCRM del BCRA</a>) en vez del dólar nominal:
+      lo que mueve la decisión de viajar es el poder de compra real, no el número de pesos por
+      dólar — un salto nominal con inflación pareja no cambia mucho la conducta.
+      <br>Formato esperado: columna <b>A</b> = mes en castellano, <b>B</b> = año,
+      <b>C</b> = VALOR (el índice o el tipo de cambio, lo que subas).
+    </p>
+    <div class="row" style="align-items:center;">
+      <div class="field">
+        <label for="ffx-file">Planilla de tipo de cambio (.xlsx)</label>
+        <input type="file" id="ffx-file" accept=".xlsx,.xlsm">
+      </div>
+      <div class="field">
+        <button class="primary" onclick="subirFX()">Subir</button>
+      </div>
+      <div class="field">
+        <button onclick="estimarElasticidadFX()" id="btn-elasticidad"
+                title="Ajusta log(internacional) = a + b·tiempo + c·log(tipo de cambio) + estacionalidad por mínimos cuadrados. El coeficiente c es la elasticidad: cuánto varía el tráfico por cada 1% de variación del tipo de cambio.">
+          Estimar elasticidad
+        </button>
+      </div>
+    </div>
+    <div class="err" id="ffx-msg"></div>
+    <div class="note" id="elasticidad-msg" style="margin-top:8px;"></div>
+
+    <details class="explicacion">
+      <summary>¿Cómo se calcula esto?</summary>
+      <div class="contenido">
+        Misma regresión log-lineal con estacionalidad de arriba, con una columna más: el
+        logaritmo del tipo de cambio cargado.
+        <div class="formula">
+          log internacional(t) = a + b·t + Σ<sub>m=2</sub><sup>12</sup> γ<sub>m</sub>·D<sub>m</sub>(t)
+          + c·log(fx(t)) + ε(t)
+        </div>
+        <table class="glosario">
+          <tr><th>Símbolo</th><th>Qué es</th></tr>
+          <tr><td>fx(t)</td><td>El valor cargado en la planilla de tipo de cambio para el mes t</td></tr>
+          <tr><td>c</td><td><b>Elasticidad</b> — el número que se muestra: % de variación en el tráfico por cada 1% de variación en fx</td></tr>
+          <tr><td>b</td><td>Tendencia de fondo, ya neta del efecto cambiario → exp(b·12) − 1</td></tr>
+        </table>
+        <b>Chequeo de confiabilidad — correlación con el tiempo:</b> si el tipo de cambio
+        cargado se movió casi como una recta a lo largo de toda la ventana, esta regresión no
+        puede separar bien "efecto cambiario" de "tendencia", y ambos coeficientes (b y c)
+        quedan poco confiables — es el mismo problema documentado con el índice de salarios
+        nominal. Cuanto más cerca de 0 esa correlación, más genuina es la variación del tipo
+        de cambio (independiente del calendario) y más confiable la elasticidad estimada.
+      </div>
+    </details>
+
+    <div class="row" style="align-items:center; gap:8px; margin-top:10px;">
+      <span class="note" style="margin:0;">Rango de meses:</span>
+      <select id="rango-fx-desde" onchange="aplicarRangoFX()" style="min-width:130px;"></select>
+      <span class="note" style="margin:0;">hasta</span>
+      <select id="rango-fx-hasta" onchange="aplicarRangoFX()" style="min-width:130px;"></select>
+      <button type="button" onclick="limpiarRangoFX()" style="padding:6px 12px; font-size:12.5px;">
+        Limpiar rango
+      </button>
+    </div>
+
+    <div id="chart-fx" style="margin-top:14px; min-height:280px;"></div>
+
+    <div style="max-height:480px; overflow-y:auto; margin-top:12px;">
+    <table>
+      <thead style="position:sticky; top:0; background:#10162e; z-index:1;">
+        <tr><th>Período</th><th class="num">Tipo de cambio</th>
+            <th class="num">Variación mensual</th></tr>
+      </thead>
+      <tbody id="tbody-fx"><tr><td colspan="3" class="empty">Sin datos de tipo de cambio cargados.</td></tr></tbody>
+    </table>
+    </div>
+  </div>
+
+  <h2>Dólar blue real (elasticidad de la demanda internacional)</h2>
+  <div class="card">
+    <p class="note" style="margin:0 0 12px;">
+      Cargá la serie diaria del dólar blue (formato "category,valor", fecha en inglés) para
+      calcular su versión <b>real</b>: se promedia a mensual y se deflacta por el IPC —
+      <b>Nivel General</b>, cargado en la sección de Índice salarial de más abajo — con base
+      en el primer mes del propio archivo. Es decir, el valor real del primer mes coincide
+      con el nominal de ese mes; de ahí en más, sube o baja según cuánto corrió el dólar
+      blue por encima o por debajo de la inflación general.
+      Igual que con el ITCRM: sirve para estimar la elasticidad de la demanda internacional,
+      pero no reemplaza el ITCRM del BCRA de la sección de arriba — son dos series distintas
+      (el BCRA no calcula el blue), podés cargar y comparar ambas.
+    </p>
+    <div class="row" style="align-items:center;">
+      <div class="field">
+        <label for="fblue-file">Dólar blue diario (.csv)</label>
+        <input type="file" id="fblue-file" accept=".csv">
+      </div>
+      <div class="field">
+        <button class="primary" onclick="subirDolarBlue()">Subir</button>
+      </div>
+      <div class="field">
+        <button onclick="estimarElasticidadDolarBlue()" id="btn-elasticidad-blue"
+                title="Ajusta log(internacional) = a + b·tiempo + c·log(dólar blue real) + estacionalidad por mínimos cuadrados.">
+          Estimar elasticidad
+        </button>
+      </div>
+    </div>
+    <div class="err" id="fblue-msg"></div>
+    <div class="note" id="elasticidad-blue-msg" style="margin-top:8px;"></div>
+
+    <details class="explicacion">
+      <summary>¿Cómo se calcula esto?</summary>
+      <div class="contenido">
+        Primero se arma el dólar blue <b>real</b> a partir del CSV diario que subiste:
+        <div class="formula">
+          blue_real(t) = blue_nominal(t) · IPC(t₀) / IPC(t)
+        </div>
+        donde <b>t₀</b> es el primer mes de tu archivo que también tenga IPC cargado (si el
+        IPC no llega tan atrás, se corre al primer mes en que ambos se superponen, y se
+        avisa arriba del gráfico). Con esa serie, se corre la misma regresión que con el
+        ITCRM, cambiando qué variable se deflacta:
+        <div class="formula">
+          log internacional(t) = a + b·t + Σ<sub>m=2</sub><sup>12</sup> γ<sub>m</sub>·D<sub>m</sub>(t)
+          + c·log(blue_real(t)) + ε(t)
+        </div>
+        <table class="glosario">
+          <tr><th>Símbolo</th><th>Qué es</th></tr>
+          <tr><td>blue_nominal(t)</td><td>Promedio mensual del CSV diario que subiste</td></tr>
+          <tr><td>IPC(t)</td><td>Nivel General del IPC (categoría "ipc"), no la división elegida para salarios</td></tr>
+          <tr><td>c</td><td><b>Elasticidad</b> — el número que se muestra</td></tr>
+          <tr><td>b</td><td>Tendencia de fondo, ya neta del efecto cambiario → exp(b·12) − 1</td></tr>
+        </table>
+        Mismo chequeo de confiabilidad que el ITCRM y los salarios: cuanto más baja la
+        correlación de log(blue_real) con el tiempo, más genuina —no un artefacto del
+        calendario— es la variación que explica la elasticidad.
+      </div>
+    </details>
+
+    <div class="row" style="align-items:center; gap:8px; margin-top:10px;">
+      <span class="note" style="margin:0;">Rango de meses:</span>
+      <select id="rango-blue-desde" onchange="aplicarRangoDolarBlue()" style="min-width:130px;"></select>
+      <span class="note" style="margin:0;">hasta</span>
+      <select id="rango-blue-hasta" onchange="aplicarRangoDolarBlue()" style="min-width:130px;"></select>
+      <button type="button" onclick="limpiarRangoDolarBlue()" style="padding:6px 12px; font-size:12.5px;">
+        Limpiar rango
+      </button>
+    </div>
+
+    <div id="chart-blue" style="margin-top:14px; min-height:280px;"></div>
+
+    <div style="max-height:480px; overflow-y:auto; margin-top:12px;">
+    <table>
+      <thead style="position:sticky; top:0; background:#10162e; z-index:1;">
+        <tr><th>Período</th><th class="num">Dólar blue real</th>
+            <th class="num">Variación mensual</th></tr>
+      </thead>
+      <tbody id="tbody-blue"><tr><td colspan="3" class="empty">Sin datos de dólar blue cargados.</td></tr></tbody>
+    </table>
+    </div>
+  </div>
+
+  <h2>Índice salarial (elasticidad de la demanda de cabotaje)</h2>
+  <div class="card">
+    <p class="note" style="margin:0 0 12px;">
+      Cargá el índice de salarios de INDEC para estimar cuánto responde el tráfico
+      <b>de cabotaje</b> al poder adquisitivo — a diferencia del tipo de cambio (que pega
+      sobre todo en el tráfico internacional), lo que mueve el viaje interno es el salario.
+      <br>Formato esperado: el CSV tal cual lo publica INDEC —
+      <code>periodo;columna1;columna2;...</code> separado por <b>;</b>, fechas
+      <b>d/m/aaaa</b> y coma como separador decimal. El archivo trae varias sub-series
+      (privado registrado, público, total registrado, no registrado, índice general); se
+      cargan todas, y elegís cuál usar para la estimación.
+    </p>
+    <div class="warn" style="margin-bottom:12px;">
+      ⚠ El índice de INDEC es <b>nominal</b> (en pesos corrientes), no ajustado por
+      inflación. En un país con inflación acumulada alta, una serie nominal se parece mucho
+      a una recta creciente — y una recta es casi indistinguible de la propia tendencia del
+      tiempo, lo que le resta confiabilidad a la elasticidad estimada. Con tus datos, la
+      correlación entre el índice nominal y el paso del tiempo da <b>0,97</b>: alta. Si
+      conseguís el IPC de INDEC en este mismo formato, avisame y agrego el cálculo de
+      salario <b>real</b> (nominal ÷ IPC), que tiene subas y bajas propias y da una
+      estimación más confiable.
+    </div>
+
+    <div class="row" style="align-items:center; margin-bottom:12px;">
+      <div class="field">
+        <label for="fipc-file">IPC de INDEC, formato largo (.csv)</label>
+        <input type="file" id="fipc-file" accept=".csv">
+      </div>
+      <div class="field">
+        <button class="primary" onclick="subirIPC()">Subir IPC</button>
+      </div>
+      <div class="field">
+        <label for="fipc-division">División a usar como deflactor</label>
+        <select id="fipc-division" style="min-width:220px;" onchange="dibujarGraficoSalarios()">
+          <option value="">Sin deflactar (usar nominal)</option>
+        </select>
+      </div>
+    </div>
+    <div class="err" id="fipc-msg"></div>
+
+    <div class="row" style="align-items:center;">
+      <div class="field">
+        <label for="fsal-file">Índice de salarios (.csv)</label>
+        <input type="file" id="fsal-file" accept=".csv">
+      </div>
+      <div class="field">
+        <button class="primary" onclick="subirSalarios()">Subir</button>
+      </div>
+      <div class="field">
+        <label for="fsal-serie">Sub-serie a usar</label>
+        <select id="fsal-serie" style="min-width:220px;"
+                onchange="dibujarTablaSalarios(); dibujarGraficoSalarios();">
+          <option value="indice_total">Índice general</option>
+          <option value="sector_privado_registrado">Sector privado registrado</option>
+          <option value="sector_publico">Sector público</option>
+          <option value="total_registrado">Total registrado</option>
+          <option value="sector_no_registrado">Sector no registrado</option>
+        </select>
+      </div>
+      <div class="field">
+        <button onclick="estimarElasticidadSalarios()" id="btn-elasticidad-salarios"
+                title="Ajusta log(cabotaje) = a + b·tiempo + c·log(salario) + estacionalidad por mínimos cuadrados.">
+          Estimar elasticidad
+        </button>
+      </div>
+    </div>
+    <div class="err" id="fsal-msg"></div>
+    <div class="note" id="elasticidad-salarios-msg" style="margin-top:8px;"></div>
+
+    <details class="explicacion">
+      <summary>¿Cómo se calcula esto?</summary>
+      <div class="contenido">
+        Misma familia de regresión que el resto, pero para <b>cabotaje</b> (el segmento que
+        más debería reaccionar al salario, no al dólar), y con la sub-serie salarial elegida
+        arriba —deflactada por el IPC si cargaste una división, nominal si no—:
+        <div class="formula">
+          log cabotaje(t) = a + b·t + Σ<sub>m=2</sub><sup>12</sup> γ<sub>m</sub>·D<sub>m</sub>(t)
+          + c·log(salario(t)) + ε(t)
+        </div>
+        <table class="glosario">
+          <tr><th>Símbolo</th><th>Qué es</th></tr>
+          <tr><td>salario(t)</td><td>La sub-serie elegida en "Sub-serie a usar", real si hay IPC o nominal si no</td></tr>
+          <tr><td>c</td><td><b>Elasticidad</b> — el número que se muestra</td></tr>
+          <tr><td>b</td><td>Tendencia de fondo, ya neta del efecto salarial → exp(b·12) − 1</td></tr>
+        </table>
+        La <b>correlación con el tiempo</b> que se muestra arriba junto al resultado es el
+        chequeo de confiabilidad: con el salario <b>nominal</b> suele dar muy alta (cerca de
+        1) porque en un país con inflación acumulada una serie nominal se mueve casi como una
+        recta, indistinguible de la tendencia — ahí la elasticidad y la tendencia estimadas
+        no son confiables. Con el salario <b>real</b> (deflactado por IPC) esa correlación
+        baja bastante, y el resultado se vuelve más creíble.
+      </div>
+    </details>
+
+    <div class="row" style="align-items:center; gap:8px; margin-top:10px;">
+      <span class="note" style="margin:0;">Rango de meses:</span>
+      <select id="rango-sal-desde" onchange="aplicarRangoSalarios()" style="min-width:130px;"></select>
+      <span class="note" style="margin:0;">hasta</span>
+      <select id="rango-sal-hasta" onchange="aplicarRangoSalarios()" style="min-width:130px;"></select>
+      <button type="button" onclick="limpiarRangoSalarios()" style="padding:6px 12px; font-size:12.5px;">
+        Limpiar rango
+      </button>
+    </div>
+
+    <div id="chart-salarios" style="margin-top:14px; min-height:280px;"></div>
+
+    <div style="max-height:480px; overflow-y:auto; margin-top:12px;">
+    <table>
+      <thead style="position:sticky; top:0; background:#10162e; z-index:1;">
+        <tr><th>Período</th><th class="num">Valor</th>
+            <th class="num">Variación mensual</th></tr>
+      </thead>
+      <tbody id="tbody-salarios"><tr><td colspan="3" class="empty">Sin datos de salarios cargados.</td></tr></tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const KG_POR_M3 = 804.0;
+
+let SERIE = [];        // histórico del backend (nacional o de la aeroplanta elegida)
+let RUTAS = [];        // rutas del escenario
+let CONFIG = {};
+let FLOTA = {};
+let AEROPUERTOS = [];
+let ARGENTINOS = [];   // solo los aeropuertos argentinos, para el selector de aeroplanta
+let AEROPLANTA = '';   // '' = todo el país
+let EXCLUSIONES = [];  // eventos excluidos del cálculo (cierres de pista, cortes puntuales)
+let MERCADO = [];      // volumen real del mercado por empresa (planilla propia)
+let FX = [];            // serie mensual de tipo de cambio (planilla propia)
+let SALARIOS = [];       // todas las sub-series del índice salarial (categoria='salario')
+let IPC = [];            // todas las divisiones del IPC (categoria='ipc'), para deflactar salarios
+let DOLARBLUE = [];       // dólar blue nominal mensual (categoria='dolar_blue', promedio de la serie diaria)
+let REALES = {};       // datos reales por período ("anio-mes"), incluidos meses aún proyectados
+let editandoId = null;
+let editandoExclusionId = null;
+
+const nf = (v, d = 0) => (v == null || isNaN(v))
+  ? '—' : Number(v).toLocaleString('es-AR', { maximumFractionDigits: d, minimumFractionDigits: d });
+
+function mesIndex(anio, mes) { return anio * 12 + (mes - 1); }
+function desdeIndex(i) { return { anio: Math.floor(i / 12), mes: (i % 12) + 1 }; }
+function etiqueta(anio, mes) { return `${anio}-${MESES[mes - 1]}`; }
+
+// ---------------------------------------------------------------- carga
+async function cargarSerie(aeropuerto) {
+  const url = aeropuerto ? `/api/consumo_nacional?aeropuerto=${encodeURIComponent(aeropuerto)}`
+                         : '/api/consumo_nacional';
+  const r = await fetch(url);
+  const d = await r.json();
+  if (d.error) throw new Error(d.error);
+  SERIE = d.serie || [];
+  REALES = d.reales_por_periodo || {};
+}
+
+async function cargarTodo() {
+  try {
+    const [rc, rp, rx, rm, rfx, rsal, ripc, rblue] = await Promise.all([
+      fetch('/api/consumo_nacional'),
+      fetch('/api/proyeccion/rutas?escenario=Base'),
+      fetch('/api/proyeccion/exclusiones'),
+      fetch('/api/proyeccion/mercado'),
+      fetch('/api/proyeccion/fx'),
+      fetch('/api/proyeccion/indices?categoria=salario'),
+      fetch('/api/proyeccion/indices?categoria=ipc'),
+      fetch('/api/proyeccion/indices?categoria=dolar_blue'),
+    ]);
+    const dc = await rc.json();
+    const dp = await rp.json();
+    const dx = await rx.json();
+    const dm = await rm.json();
+    const dfx = await rfx.json();
+    const dsal = await rsal.json();
+    const dipc = await ripc.json();
+    const dblue = await rblue.json();
+    if (dc.error) throw new Error(dc.error);
+    if (dp.error) throw new Error(dp.error);
+    if (dx.error) throw new Error(dx.error);
+    if (dm.error) throw new Error(dm.error);
+    if (dfx.error) throw new Error(dfx.error);
+    if (dsal.error) throw new Error(dsal.error);
+    if (dipc.error) throw new Error(dipc.error);
+    if (dblue.error) throw new Error(dblue.error);
+
+    SERIE = dc.serie || [];
+    REALES = dc.reales_por_periodo || {};
+    RUTAS = dp.rutas || [];
+    CONFIG = dp.config || {};
+    FLOTA = dp.flota || {};
+    AEROPUERTOS = dp.aeropuertos || [];
+    EXCLUSIONES = dx.exclusiones || [];
+    MERCADO = dm.mercado || [];
+    FX = dfx.fx || [];
+    SALARIOS = dsal.indices || [];
+    IPC = dipc.indices || [];
+    DOLARBLUE = (dblue.indices || []).filter(i => i.nombre === 'nominal');
+    ARGENTINOS = dp.argentinos || [];
+
+    const selAero = document.getElementById('f-aeroplanta');
+    selAero.innerHTML = '<option value="">Todo el país</option>' +
+      [...ARGENTINOS].sort((a, b) => a.localeCompare(b, 'es'))
+        .map(a => `<option value="${a}">${a}</option>`).join('');
+
+    const selAeroExcl = document.getElementById('fx-aeroplanta');
+    selAeroExcl.innerHTML = '<option value="">Todo el país</option>' +
+      [...ARGENTINOS].sort((a, b) => a.localeCompare(b, 'es'))
+        .map(a => `<option value="${a}">${a}</option>`).join('');
+    dibujarTablaExclusiones();
+
+    const selIpc = document.getElementById('fipc-division');
+    if (selIpc) {
+      const divisiones = [...new Set(IPC.map(i => i.nombre))].sort((a, b) => a.localeCompare(b, 'es'));
+      selIpc.innerHTML = '<option value="">Sin deflactar (usar nominal)</option>' +
+        divisiones.map(n => `<option value="${n}">${n}</option>`).join('');
+      if (divisiones.includes('Nivel General')) selIpc.value = 'Nivel General';
+    }
+    selAero.addEventListener('change', async () => {
+      AEROPLANTA = selAero.value;
+      const note = document.getElementById('aeroplanta-note');
+      const h1 = document.getElementById('titulo-proyeccion');
+      try {
+        note.textContent = 'Cargando…';
+        await cargarSerie(AEROPLANTA);
+        if (AEROPLANTA) {
+          h1.textContent = `📈 Proyección de consumo de Jet A-1 — ${AEROPLANTA}`;
+          note.innerHTML = 'Vista acotada a esta aeroplanta: en las rutas de cabotaje se ' +
+            'reparte por mitad entre origen y destino (ambos cargan combustible); en las ' +
+            'internacionales, esta aeroplanta se queda con el 100% de lo que la ruta aporta ' +
+            'al total del país, porque es su único extremo argentino.';
+        } else {
+          h1.textContent = '📈 Proyección de consumo de Jet A-1 en Argentina';
+          note.textContent = '';
+        }
+        actualizarNotaRutas();
+        recalcular();
+      } catch (e) {
+        note.textContent = 'Error: ' + e.message;
+      }
+    });
+
+    document.getElementById('f-horizonte').value = CONFIG.horizonte_meses ?? 24;
+    document.getElementById('f-gcab').value = ((CONFIG.crecimiento_anual_cabotaje ?? 0.03) * 100).toFixed(1);
+    document.getElementById('f-gintl').value = ((CONFIG.crecimiento_anual_intl ?? 0.04) * 100).toFixed(1);
+    document.getElementById('f-anios').value = CONFIG.anios_estacionalidad ?? 3;
+
+    const dl = document.getElementById('dl-aeropuertos');
+    dl.innerHTML = AEROPUERTOS.map(a => `<option value="${a}">`).join('');
+
+    const sel = document.getElementById('f-avion');
+    sel.innerHTML = '<option value="">Automático (por ocupación)</option>' +
+      Object.keys(FLOTA)
+        .filter(c => FLOTA[c].en_escalera && FLOTA[c].b_kg_km != null)
+        .sort((a, b) => FLOTA[a].pax_vuelo_max - FLOTA[b].pax_vuelo_max)
+        .map(c => `<option value="${c}">${FLOTA[c].nombre} (${FLOTA[c].asientos} as.)</option>`).join('');
+
+    if (SERIE.length) {
+      const u = SERIE[SERIE.length - 1];
+      const sig = desdeIndex(mesIndex(u.anio, u.mes) + 1);
+      document.getElementById('f-desde').value = `${sig.anio}-${String(sig.mes).padStart(2, '0')}`;
+    }
+
+    recalcular();
+  } catch (e) {
+    document.getElementById('kpis').innerHTML =
+      `<div class="empty">Error cargando datos: ${e.message}</div>`;
+  }
+}
+
+// ---------------------------------------------------------------- proyección
+function indicesEstacionales(campo, anios, excluirCovid) {
+  const aniosDisponibles = [...new Set(SERIE.map(s => s.anio))].sort((a, b) => b - a);
+  const elegidos = [];
+  const descartados = [];  // [{anio, motivo}] para poder explicarlo en pantalla
+  for (const a of aniosDisponibles) {
+    if (elegidos.length >= anios) {
+      descartados.push({ anio: a, motivo: 'no hizo falta (ya se juntaron los años pedidos)' });
+      continue;
+    }
+    if (excluirCovid && (a === 2020 || a === 2021)) {
+      descartados.push({ anio: a, motivo: 'excluido por el filtro 2020-2021' });
+      continue;
+    }
+    // solo años completos (la cobertura de datos, no la exclusión, define "completo": un
+    // año con meses excluidos por un evento puntual sigue contando como año disponible,
+    // simplemente esos meses no entran en el promedio de abajo)
+    const nMeses = SERIE.filter(s => s.anio === a).length;
+    if (nMeses < 12) {
+      descartados.push({ anio: a, motivo: `incompleto: solo ${nMeses} de 12 meses con datos de ANAC` });
+      continue;
+    }
+    elegidos.push(a);
+  }
+  if (!elegidos.length) return { indices: new Array(12).fill(1), anios: [], descartados };
+
+  const sumaMes = new Array(12).fill(0), cuentaMes = new Array(12).fill(0);
+  for (const s of SERIE) {
+    if (!elegidos.includes(s.anio)) continue;
+    if (s.excluido) continue;  // cierre de pista, corte puntual, etc.: no cuenta
+    sumaMes[s.mes - 1] += s[campo] || 0;
+    cuentaMes[s.mes - 1] += 1;
+  }
+  const prom = sumaMes.map((v, i) => cuentaMes[i] ? v / cuentaMes[i] : 0);
+  const media = prom.reduce((a, b) => a + b, 0) / 12;
+  return {
+    indices: media > 0 ? prom.map(v => v / media) : new Array(12).fill(1),
+    anios: elegidos,
+    descartados,
+  };
+}
+
+// Nivel de partida: promedio mensual de los últimos 12 meses REALES y no excluidos. Si
+// alguno de los últimos 12 cae dentro de una ventana excluida (cierre de pista, corte
+// puntual), se extiende la ventana hacia atrás para seguir promediando sobre 12 meses
+// genuinos en vez de sesgar el nivel de partida con un mes que no representa demanda real.
+function nivelBase(campo) {
+  const validos = [];
+  for (let i = SERIE.length - 1; i >= 0 && validos.length < 12; i--) {
+    if (!SERIE[i].excluido) validos.push(SERIE[i]);
+  }
+  if (!validos.length) return 0;
+  return validos.reduce((a, s) => a + (s[campo] || 0), 0) / validos.length;
+}
+
+function aporteEscenario(anio, mes) {
+  const idx = mesIndex(anio, mes);
+  let total = 0;
+  for (const r of RUTAS) {
+    if (!r.activo) continue;
+    if (idx < mesIndex(r.desde_anio, r.desde_mes)) continue;
+    if (r.hasta_anio && idx > mesIndex(r.hasta_anio, r.hasta_mes)) continue;
+    let aporte = r.m3_por_mes || 0;
+    if (AEROPLANTA) {
+      // Igual reparto que usa el backend en /api/consumo_nacional?aeropuerto=: si la ruta
+      // no toca esta aeroplanta no aporta nada; si es de cabotaje (los dos extremos son
+      // argentinos) le toca la mitad; si es internacional, el 100% de su aporte ya
+      // corresponde por completo a esta aeroplanta (es su único extremo en el país).
+      if (r.origin !== AEROPLANTA && r.dest !== AEROPLANTA) continue;
+      if (r.tipo === 'cabotaje') aporte *= 0.5;
+    }
+    total += aporte;
+  }
+  return total;
+}
+
+function construirProyeccion() {
+  const horizonte = parseInt(document.getElementById('f-horizonte').value) || 24;
+  const gCab = (parseFloat(document.getElementById('f-gcab').value) || 0) / 100;
+  const gIntl = (parseFloat(document.getElementById('f-gintl').value) || 0) / 100;
+  const nAnios = parseInt(document.getElementById('f-anios').value) || 3;
+  const excluirCovid = document.getElementById('f-excluir-covid').checked;
+
+  const estCab = indicesEstacionales('cabotaje_m3', nAnios, excluirCovid);
+  const estIntl = indicesEstacionales('internacional_m3', nAnios, excluirCovid);
+  const baseCab = nivelBase('cabotaje_m3');
+  const baseIntl = nivelBase('internacional_m3');
+
+  // SERIE es solo histórico real de ANAC, así que la proyección arranca justo después del
+  // último mes que tiene rutas cargadas. Un mes con despacho de combustible pero sin datos
+  // de ANAC todavía (julio) NO está en SERIE: cae del lado proyectado, que es lo correcto.
+  const ultimo = SERIE.length
+    ? mesIndex(SERIE[SERIE.length - 1].anio, SERIE[SERIE.length - 1].mes) : null;
+  const filas = [];
+  if (ultimo == null) return { filas, estCab, estIntl };
+
+  for (let k = 1; k <= horizonte; k++) {
+    const { anio, mes } = desdeIndex(ultimo + k);
+    const t = k / 12;
+    const cab = baseCab * estCab.indices[mes - 1] * Math.pow(1 + gCab, t);
+    const intl = baseIntl * estIntl.indices[mes - 1] * Math.pow(1 + gIntl, t);
+    const esc = aporteEscenario(anio, mes);
+    const total = cab + intl + esc;
+    // Un mes proyectado puede tener datos REALES igual: el Excel de combustible o el de
+    // mercado suelen llegar antes que el de rutas de ANAC. En ese caso el despacho y el
+    // mercado se muestran en la misma fila proyectada (no en una fila aparte), y el desvío
+    // se calcula contra la proyección — que es justamente lo interesante: cuánto le erró la
+    // proyección a un mes que ya se puede contrastar.
+    const r = REALES[`${anio}-${mes}`] || {};
+    filas.push({
+      anio, mes, ym: etiqueta(anio, mes),
+      cabotaje_m3: cab, internacional_m3: intl, escenario_m3: esc,
+      total_m3: total,
+      real_m3: r.real_m3 ?? null,
+      real_m3_fuente: r.real_m3_fuente ?? null,
+      ratio_real_modelo: (r.real_m3 && total) ? r.real_m3 / total : null,
+      mercado_total_m3: r.mercado_total_m3 ?? null,
+      desvio_modelo_pct: (r.mercado_total_m3 && total)
+        ? (total / r.mercado_total_m3 - 1) * 100 : null,
+    });
+  }
+  return { filas, estCab, estIntl };
+}
+
+// ---------------------------------------------------------------- render
+function recalcular() {
+  const { filas, estCab } = construirProyeccion();
+  dibujarGrafico(filas);
+  dibujarKpis(filas);
+  dibujarDetalle(filas);
+  dibujarTablaRutas();
+  dibujarTablaMercado(filas);
+  dibujarTablaFX();
+  dibujarTablaSalarios();
+  dibujarTablaDolarBlue();
+  dibujarGraficoFX();
+  dibujarGraficoSalarios();
+  dibujarGraficoDolarBlue();
+
+  const warn = document.getElementById('covid-warn');
+  if (!estCab.anios.length) {
+    warn.style.display = 'block';
+    warn.textContent = 'No hay años completos disponibles para calcular la estacionalidad: ' +
+      'la proyección está usando un perfil plano (índice 1 en todos los meses).';
+  } else {
+    warn.style.display = 'block';
+    // Se listan también los años SALTEADOS y el motivo. Sin esto, ver "2025, 2024, 2022,
+    // 2019" y no entender por qué falta 2023 obliga a ir a leer el código: casi siempre es
+    // que ese año está incompleto en la base (ANAC publica con retraso, o falta subir un
+    // Excel), no un criterio del modelo.
+    const salteados = (estCab.descartados || [])
+      .filter(d => !d.motivo.startsWith('no hizo falta'))
+      .map(d => `${d.anio} (${d.motivo})`);
+    warn.innerHTML = `Estacionalidad calculada sobre: <b>${estCab.anios.join(', ')}</b>.` +
+      (salteados.length ? `<br>Años salteados: ${salteados.join(' · ')}.` : '');
+  }
+
+  const conReal = SERIE.filter(s => s.ratio_real_modelo != null);
+  const note = document.getElementById('chart-note');
+  if (conReal.length) {
+    const ratio = conReal.reduce((a, s) => a + s.ratio_real_modelo, 0) / conReal.length;
+    note.innerHTML = `Sobre ${conReal.length} mes(es) con despacho real cargado, el volumen de YPF ` +
+      `representa en promedio un <b>${(ratio * 100).toFixed(1)}%</b> del total nacional que estima el ` +
+      `modelo. Ese cociente es un share de mercado, no un error del modelo: para usarlo como ` +
+      `calibración habría que contrastarlo contra el total del mercado, no contra el despacho de YPF.`;
+  } else {
+    note.textContent = 'Todavía no hay despachos reales cargados para contrastar contra el modelo. ' +
+      'Cargá el Excel de despachos desde /admin y esta comparación aparece sola.';
+  }
+
+  const notaExcl = document.getElementById('chart-exclusiones-note');
+  const activas = EXCLUSIONES.filter(ex => ex.activo && (!ex.aeropuerto || ex.aeropuerto === AEROPLANTA));
+  notaExcl.textContent = activas.length
+    ? '🟥 Franjas excluidas del cálculo: ' + activas.map(ex =>
+        `${etiqueta(ex.desde_anio, ex.desde_mes)}–${etiqueta(ex.hasta_anio, ex.hasta_mes)} ` +
+        `(${ex.motivo}${ex.aeropuerto ? '' : ', todo el país'})`).join(' · ')
+    : '';
+}
+
+function isoDate(anio, mes) { return `${anio}-${String(mes).padStart(2, '0')}-01`; }
+
+function dibujarGrafico(proy) {
+  // Eje de FECHA real (antes era de categorías de texto tipo "2026-Jun"). Con categorías,
+  // cada serie tenía su propio largo — la de despacho real es rala, la histórica corta
+  // justo donde arranca la proyección — y en 'hovermode: x unified' Plotly, cuando una
+  // serie no tiene punto exacto en la fecha que se está mirando, cae al ÚLTIMO punto que sí
+  // tiene y lo muestra igual, etiquetado con la fecha que se está mirando: eso es lo que
+  // hacía parecer que diciembre traía los valores de junio.
+  //
+  // La solución es una grilla de fechas COMPARTIDA por todas las series, con `null` en los
+  // meses donde una serie puntual no tiene dato — un null no se dibuja y tampoco aparece en
+  // el hover, así que cada serie solo habla de sus propios meses. De paso, un eje de fecha
+  // real habilita el zoom nativo de Plotly (arrastrar, rueda, y los botones de abajo).
+  const master = [
+    ...SERIE.map(s => isoDate(s.anio, s.mes)),
+    ...proy.map(f => isoDate(f.anio, f.mes)),
+  ];
+
+  const cabotajeMap = new Map(SERIE.map(s => [isoDate(s.anio, s.mes), s.cabotaje_m3]));
+  const intlMap = new Map(SERIE.map(s => [isoDate(s.anio, s.mes), s.internacional_m3]));
+  // El despacho real se toma tanto del histórico como de las filas proyectadas: un mes
+  // puede tener el Excel de combustible cargado y todavía no el de rutas de ANAC (julio),
+  // y ese punto rosa tiene que verse igual aunque el mes caiga del lado proyectado.
+  const realMap = new Map([
+    ...SERIE.filter(s => s.real_m3 != null).map(s => [isoDate(s.anio, s.mes), s.real_m3]),
+    ...proy.filter(f => f.real_m3 != null).map(f => [isoDate(f.anio, f.mes), f.real_m3]),
+  ]);
+  const escenarioMap = new Map(proy.map(f => [isoDate(f.anio, f.mes), f.escenario_m3]));
+  const proyeccionMap = new Map(proy.map(f => [isoDate(f.anio, f.mes), f.total_m3]));
+  if (SERIE.length) {
+    // enganchar la línea de proyección con el último mes real, para que no corte
+    const u = SERIE[SERIE.length - 1];
+    proyeccionMap.set(isoDate(u.anio, u.mes), u.total_m3);
+  }
+
+  const pick = (map) => master.map(x => map.has(x) ? map.get(x) : null);
+  const cabotajeY = pick(cabotajeMap), intlY = pick(intlMap), realY = pick(realMap);
+  const escenarioY = pick(escenarioMap), proyeccionY = pick(proyeccionMap);
+
+  // Franjas sombreadas para los meses excluidos del cálculo: se agrupan los consecutivos en
+  // un solo rectángulo en vez de uno por mes, para no ensuciar el gráfico. El dato sigue
+  // ahí (no se borra la serie), solo se marca visualmente que no pesó en la estacionalidad
+  // ni en el nivel de partida.
+  const shapes = [];
+  let bloqueInicio = null;
+  for (let i = 0; i < SERIE.length; i++) {
+    const excluido = !!SERIE[i].excluido;
+    if (excluido && bloqueInicio == null) bloqueInicio = i;
+    if ((!excluido || i === SERIE.length - 1) && bloqueInicio != null) {
+      const fin = excluido ? i : i - 1;
+      const x0 = isoDate(SERIE[bloqueInicio].anio, SERIE[bloqueInicio].mes);
+      const ultimo = SERIE[fin];
+      const sig = desdeIndex(mesIndex(ultimo.anio, ultimo.mes) + 1);
+      shapes.push({
+        type: 'rect', xref: 'x', yref: 'paper',
+        x0, x1: isoDate(sig.anio, sig.mes), y0: 0, y1: 1,
+        fillcolor: 'rgba(255,107,138,0.12)', line: { width: 0 },
+      });
+      bloqueInicio = null;
+    }
+  }
+
+  // ---- tooltip armado a mano, no el hover automático de Plotly ----
+  // 'hovermode: x unified' suena a la solución obvia para mostrar las 5 series juntas, pero
+  // en la práctica Plotly busca el punto MÁS CERCANO de cada serie por separado y lo
+  // muestra igual aunque no exista exactamente en la fecha que se está mirando — con series
+  // de distinto largo (el despacho real es esporádico, la proyección solo existe a futuro)
+  // eso hacía que mayo apareciera con datos de junio. Rellenar con `null` no alcanza: sigue
+  // "pegándose" al punto no-nulo más próximo.
+  //
+  // La forma de garantizar que el tooltip diga la verdad es dejar de delegarle a Plotly qué
+  // mostrar: se arma el texto de cada mes acá mismo, a partir de los mismos arrays que se
+  // grafican, y se lo cuelga de una única serie invisible. Las 5 series reales quedan con
+  // `hoverinfo: 'skip'` para que no compitan agregando sus propios cuadros.
+  const hoverTexts = master.map((x, i) => {
+    const [anio, mes] = x.split('-');
+    const lineas = [`<b>${MESES[parseInt(mes) - 1]} ${anio}</b>`];
+    if (cabotajeY[i] != null) lineas.push(`Cabotaje (histórico): ${nf(cabotajeY[i])} m³`);
+    if (intlY[i] != null) lineas.push(`Internacional (histórico): ${nf(intlY[i])} m³`);
+    // Total del mes histórico. Es la suma que el gráfico ya muestra apilada (cabotaje +
+    // internacional), pero leerla del apilado a ojo es incómodo; acá va explícita. No se
+    // agrega en los meses proyectados: ahí la línea "Proyección total" ya cumple ese rol.
+    if (cabotajeY[i] != null || intlY[i] != null) {
+      lineas.push(`<b>Total histórico: ${nf((cabotajeY[i] || 0) + (intlY[i] || 0))} m³</b>`);
+    }
+    if (proyeccionY[i] != null) lineas.push(`Proyección total: ${nf(proyeccionY[i])} m³`);
+    if (escenarioY[i] != null && escenarioY[i] !== 0) lineas.push(`Aporte del escenario: ${nf(escenarioY[i])} m³`);
+    if (realY[i] != null) lineas.push(`Despacho YPF real: ${nf(realY[i])} m³`);
+    return lineas.join('<br>');
+  });
+  const yAncla = master.map((_, i) =>
+    (cabotajeY[i] != null || intlY[i] != null)
+      ? (cabotajeY[i] || 0) + (intlY[i] || 0)
+      : (proyeccionY[i] != null ? proyeccionY[i] : 0));
+
+  // Fechas ancla para el mosaico de años: "hoy" es el último mes con dato REAL, no la
+  // punta final del array (que puede estar años adelante si el horizonte es largo). Antes
+  // los botones nativos de Plotly restaban hacia atrás desde el final absoluto de los
+  // datos — con un horizonte de 24 meses, "1 año" mostraba el ÚLTIMO año de la PROYECCIÓN,
+  // muy lejos en el futuro y casi vacío, en vez del último año real.
+  const ultimoRealDate = SERIE.length
+    ? isoDate(SERIE[SERIE.length - 1].anio, SERIE[SERIE.length - 1].mes) : null;
+  const finProyeccionDate = proy.length
+    ? isoDate(proy[proy.length - 1].anio, proy[proy.length - 1].mes) : ultimoRealDate;
+
+  Plotly.newPlot('chart', [
+    { x: master, y: cabotajeY, name: 'Cabotaje (histórico)', type: 'scatter',
+      mode: 'lines', stackgroup: 'h', connectgaps: false, hoverinfo: 'skip',
+      line: { width: 0.5, color: '#4c7cf0' } },
+    { x: master, y: intlY, name: 'Internacional (histórico)', type: 'scatter',
+      mode: 'lines', stackgroup: 'h', connectgaps: false, hoverinfo: 'skip',
+      line: { width: 0.5, color: '#7a5cf0' } },
+    { x: master, y: proyeccionY, name: 'Proyección total', type: 'scatter', mode: 'lines',
+      connectgaps: false, hoverinfo: 'skip', line: { color: '#ffb347', width: 2, dash: 'dot' } },
+    { x: master, y: escenarioY, name: 'Aporte del escenario', type: 'bar',
+      hoverinfo: 'skip', marker: { color: '#8fe3a2' } },
+    { x: master, y: realY, name: 'Despacho YPF real', hoverinfo: 'skip',
+      type: 'scatter', mode: 'markers', marker: { color: '#ff6b8a', size: 6, symbol: 'diamond' } },
+    { x: master, y: yAncla, name: '', type: 'scatter', mode: 'markers',
+      marker: { opacity: 0, size: 18 }, showlegend: false,
+      hoverinfo: 'text', hovertext: hoverTexts },
+  ], {
+    paper_bgcolor: '#10162e', plot_bgcolor: '#10162e',
+    font: { color: '#c8cfe6', size: 11 },
+    margin: { l: 62, r: 18, t: 12, b: 150 },
+    xaxis: {
+      gridcolor: '#1e2748', type: 'date',
+      // Vista inicial: exactamente la ventana proyectada (último mes real → fin del
+      // horizonte), ni más ni menos. El mosaico de años de arriba del gráfico deja ver
+      // más historia con un clic.
+      range: ultimoRealDate ? [ultimoRealDate, finProyeccionDate] : undefined,
+      // Línea vertical punteada que sigue al mouse, para ubicar el mes a simple vista —
+      // con 'hovermode: x' (en vez de 'x unified') Plotly ya no la dibuja sola, hay que
+      // pedirla explícitamente con showspikes.
+      showspikes: true, spikemode: 'across', spikesnap: 'cursor',
+      spikethickness: 1, spikedash: 'dot', spikecolor: '#8b93b8',
+      // Ticks mayores automáticos (años si la ventana es grande, meses si se hace zoom), más
+      // una grilla mensual tenue siempre visible para poder ubicar un mes dentro del año a
+      // simple vista, aunque la etiqueta grande diga solo "2026".
+      minor: { dtick: 'M1', showgrid: true, gridcolor: 'rgba(200,207,230,0.06)', ticklen: 3 },
+      rangeslider: { visible: true, bgcolor: '#0b1020', bordercolor: '#2a3358', thickness: 0.09 },
+    },
+    yaxis: { gridcolor: '#1e2748', title: 'm³ de Jet A-1 por mes' },
+    // El selector de rango (rangeslider) ocupa su propia franja debajo del eje X; la
+    // leyenda tiene que quedar POR DEBAJO de esa franja, no a la misma altura, si no se
+    // superponen. Con margin.b=150 y el rangeslider al 9% de la altura del gráfico, -0.5
+    // deja el aire suficiente entre ambos.
+    legend: { orientation: 'h', y: -0.5 },
+    hovermode: 'x',
+    hoverlabel: { bgcolor: '#161d3d', bordercolor: '#3a4470', font: { color: '#e4e8f5', size: 12 } },
+    barmode: 'relative',
+    shapes,
+  }, { displayModeBar: false, responsive: true });
+
+  dibujarMosaicoAnios(proy, ultimoRealDate, finProyeccionDate);
+}
+
+// Mosaico de años arriba del gráfico, en vez de los 4-5 botones genéricos de antes: con 25
+// años de historia (2001 en adelante) más los proyectados, es más rápido clickear el año
+// puntual que interesa que ir sumando "2 años, 5 años" hasta llegar ahí. "Todo" y
+// "Proyección" quedan como accesos especiales al principio, con borde punteado para
+// distinguirlos de los años.
+let MOSAICO_TILES = [];      // estado del mosaico de años, para no serializar JSON en el HTML
+let aniosSeleccionados = new Set();  // índices de tiles de AÑO tildados (multi-selección)
+
+function dibujarMosaicoAnios(proy, ultimoRealDate, finProyeccionDate) {
+  const cont = document.getElementById('year-mosaic');
+  if (!cont) return;
+  aniosSeleccionados = new Set();  // el mosaico se reconstruye entero: no arrastrar índices viejos
+
+  const aniosReales = new Set(SERIE.map(s => s.anio));
+  const aniosProy = new Set(proy.map(f => f.anio));
+  const todos = [...aniosReales, ...aniosProy];
+  if (!todos.length) { cont.innerHTML = ''; return; }
+  const min = Math.min(...todos), max = Math.max(...todos);
+
+  const tiles = [];
+  tiles.push({ id: 'todo', label: 'Todo', clase: 'especial', rango: null });  // null = autorange
+  if (ultimoRealDate) {
+    tiles.push({ id: 'proyeccion', label: 'Proyección', clase: 'especial proyectado',
+                rango: [ultimoRealDate, finProyeccionDate] });
+  }
+  for (let a = min; a <= max; a++) {
+    const esFuturo = !aniosReales.has(a);  // año sin ningún mes real: 100% proyectado
+    tiles.push({
+      id: `y${a}`, label: String(a), clase: esFuturo ? 'proyectado' : '',
+      rango: [`${a}-01-01`, `${a + 1}-01-01`],
+    });
+  }
+
+  MOSAICO_TILES = tiles;
+  cont.innerHTML = tiles.map((t, i) =>
+    `<button type="button" class="year-tile ${t.clase}" data-id="${t.id}" data-idx="${i}"
+             onclick="zoomAnioMosaico(${i})">${t.label}</button>`
+  ).join('');
+
+  // Marcar como activo el que coincide con la vista inicial (arranca en "Proyección").
+  const activo = cont.querySelector(`[data-id="${ultimoRealDate ? 'proyeccion' : 'todo'}"]`);
+  if (activo) activo.classList.add('active');
+
+  poblarSelectsRangoMeses(min, max);
+}
+
+// Selects "Desde" / "Hasta": filtro por mes-año independiente del mosaico de arriba, para
+// rangos que no arrancan ni terminan en 1° de enero (ej. "de agosto de 2019 a marzo de
+// 2023"). Se reconstruyen junto con el mosaico porque comparten el mismo min/max de años.
+function poblarSelectsRangoMeses(min, max) {
+  const desde = document.getElementById('rango-desde');
+  const hasta = document.getElementById('rango-hasta');
+  if (!desde || !hasta) return;
+
+  const opciones = [];
+  for (let a = min; a <= max; a++) {
+    for (let m = 1; m <= 12; m++) opciones.push(`${a}-${String(m).padStart(2, '0')}`);
+  }
+  const html = opciones.map(v => {
+    const [a, m] = v.split('-');
+    return `<option value="${v}">${MESES[parseInt(m, 10) - 1]} ${a}</option>`;
+  }).join('');
+
+  desde.innerHTML = html;
+  hasta.innerHTML = html;
+  desde.value = opciones[0];
+  hasta.value = opciones[opciones.length - 1];
+}
+
+function aplicarRangoMeses() {
+  const desde = document.getElementById('rango-desde').value;  // "AAAA-MM"
+  const hasta = document.getElementById('rango-hasta').value;
+  if (!desde || !hasta) return;
+
+  let [a0, m0] = desde.split('-').map(Number);
+  let [a1, m1] = hasta.split('-').map(Number);
+  if (a1 < a0 || (a1 === a0 && m1 < m0)) {
+    // "Hasta" quedó antes que "Desde": se intercambian en vez de mostrar un gráfico vacío,
+    // total el usuario claramente quiso ver ese período, sólo eligió los selects al revés.
+    [a0, m0, a1, m1] = [a1, m1, a0, m0];
+    document.getElementById('rango-desde').value = `${a0}-${String(m0).padStart(2, '0')}`;
+    document.getElementById('rango-hasta').value = `${a1}-${String(m1).padStart(2, '0')}`;
+  }
+
+  const x0 = isoDate(a0, m0);
+  // fin de rango EXCLUSIVO: el 1° del mes siguiente al de "Hasta", mismo criterio que usan
+  // los tiles de año (`${a+1}-01-01`), para que el mes elegido en "Hasta" se vea completo.
+  const x1 = (m1 === 12) ? isoDate(a1 + 1, 1) : isoDate(a1, m1 + 1);
+  Plotly.relayout('chart', { 'xaxis.range': [x0, x1] });
+
+  // El rango de meses es independiente del mosaico: se apaga cualquier tile de año activo,
+  // para que no quede un botón marcado como si describiera lo que en realidad se está viendo.
+  aniosSeleccionados.clear();
+  document.querySelectorAll('#year-mosaic .year-tile').forEach(b => b.classList.remove('active'));
+}
+
+function limpiarRangoMeses() {
+  const desde = document.getElementById('rango-desde');
+  const hasta = document.getElementById('rango-hasta');
+  if (desde && desde.options.length) desde.value = desde.options[0].value;
+  if (hasta && hasta.options.length) hasta.value = hasta.options[hasta.options.length - 1].value;
+  // Volver a la vista por defecto: "Proyección" si hay datos reales, si no "Todo" —
+  // exactamente el mismo criterio que ya usa dibujarMosaicoAnios() al construirse.
+  const idProyeccion = MOSAICO_TILES.findIndex(t => t.id === 'proyeccion');
+  const idTodo = MOSAICO_TILES.findIndex(t => t.id === 'todo');
+  zoomAnioMosaico(idProyeccion >= 0 ? idProyeccion : idTodo);
+}
+
+// "Todo" y "Proyección" son exclusivos (van solos). Los años sueltos se pueden ir tildando
+// de a varios — con 2 o más tildados, el gráfico muestra la UNIÓN: del 1° de enero del más
+// viejo al 1° de enero siguiente al más nuevo, para comparar por ejemplo 2019 contra 2023
+// sin tener que arrastrar los años intermedios.
+function zoomAnioMosaico(idx) {
+  const t = MOSAICO_TILES[idx];
+  if (!t) return;
+
+  if (t.id === 'todo' || t.id === 'proyeccion') {
+    aniosSeleccionados.clear();
+    Plotly.relayout('chart', t.rango ? { 'xaxis.range': t.rango } : { 'xaxis.autorange': true });
+    document.querySelectorAll('#year-mosaic .year-tile').forEach(b =>
+      b.classList.toggle('active', b.dataset.id === t.id));
+    return;
+  }
+
+  if (aniosSeleccionados.has(idx)) {
+    aniosSeleccionados.delete(idx);
+  } else {
+    aniosSeleccionados.add(idx);
+  }
+  document.querySelectorAll('#year-mosaic .year-tile').forEach(b => {
+    b.classList.toggle('active', aniosSeleccionados.has(parseInt(b.dataset.idx, 10)));
+  });
+
+  if (!aniosSeleccionados.size) return;  // se destildó el último: dejar el gráfico como está
+
+  const rangos = [...aniosSeleccionados].map(i => MOSAICO_TILES[i].rango);
+  const x0 = rangos.map(r => r[0]).sort()[0];
+  const x1 = rangos.map(r => r[1]).sort().slice(-1)[0];
+  Plotly.relayout('chart', { 'xaxis.range': [x0, x1] });
+}
+
+function dibujarKpis(proy) {
+  const ultimo12 = SERIE.slice(-12);
+  const totalUlt12 = ultimo12.reduce((a, s) => a + s.total_m3, 0);
+  const totalProy12 = proy.slice(0, 12).reduce((a, f) => a + f.total_m3, 0);
+  const aporte12 = proy.slice(0, 12).reduce((a, f) => a + f.escenario_m3, 0);
+  const variacion = totalUlt12 > 0 ? (totalProy12 / totalUlt12 - 1) * 100 : null;
+
+  document.getElementById('kpis').innerHTML = `
+    <div class="kpi"><div class="k">Últimos 12 meses reales</div>
+      <div class="v">${nf(totalUlt12)} m³</div>
+      <div class="n">${nf(totalUlt12 * KG_POR_M3 / 1000)} t · ${ultimo12.length ? ultimo12[0].ym + ' a ' + ultimo12[ultimo12.length-1].ym : '—'}</div></div>
+    <div class="kpi"><div class="k">Próximos 12 meses proyectados</div>
+      <div class="v">${nf(totalProy12)} m³</div>
+      <div class="n">${variacion == null ? '—' : (variacion >= 0 ? '+' : '') + variacion.toFixed(1) + '% vs. 12 meses previos'}</div></div>
+    <div class="kpi"><div class="k">Aporte de las rutas del escenario</div>
+      <div class="v">${nf(aporte12)} m³</div>
+      <div class="n">${RUTAS.filter(r => r.activo).length} ruta(s) activa(s) en 12 meses</div></div>
+    <div class="kpi"><div class="k">Meses de histórico</div>
+      <div class="v">${SERIE.length}</div>
+      <div class="n">${SERIE.length ? SERIE[0].ym + ' a ' + SERIE[SERIE.length-1].ym : '—'}</div></div>`;
+}
+
+function dibujarDetalle(proy) {
+  const hist = SERIE.slice(-18).map(s => ({
+    ym: s.ym, marca: 'histórico', cab: s.cabotaje_m3, intl: s.internacional_m3,
+    esc: null, total: s.total_m3, real: s.real_m3, realFuente: s.real_m3_fuente,
+    ratio: s.ratio_real_modelo,
+    mercado: s.mercado_total_m3, desvio: s.desvio_modelo_pct,
+  }));
+  const fut = proy.map(f => ({
+    ym: f.ym, marca: 'proyectado', cab: f.cabotaje_m3, intl: f.internacional_m3,
+    esc: f.escenario_m3, total: f.total_m3,
+    real: f.real_m3, realFuente: f.real_m3_fuente, ratio: f.ratio_real_modelo,
+    mercado: f.mercado_total_m3, desvio: f.desvio_modelo_pct,
+  }));
+  const filas = [...hist, ...fut];
+  const fondo = { 'proyectado': 'rgba(255,179,71,0.05)' };
+  document.getElementById('tbody-detalle').innerHTML = filas.length ? filas.map(f => `
+    <tr${fondo[f.marca] ? ` style="background:${fondo[f.marca]};"` : ''}>
+      <td>${f.ym}</td>
+      <td><span class="pill${f.marca === 'histórico' ? ' real' : ''}">${f.marca}</span></td>
+      <td class="num">${f.cab == null ? '—' : nf(f.cab)}</td>
+      <td class="num">${f.intl == null ? '—' : nf(f.intl)}</td>
+      <td class="num">${f.esc == null ? '—' : nf(f.esc)}</td>
+      <td class="num"><b>${f.total == null ? '—' : nf(f.total)}</b></td>
+      <td class="num">${f.total == null ? '—' : nf(f.total * KG_POR_M3 / 1000)}</td>
+      <td class="num">${f.real == null ? '—' : nf(f.real) +
+        (f.realFuente === 'mercado'
+          ? ' <span class="pill" title="No hay Excel de despachos para este mes: se usa la columna YPF de la planilla de mercado.">mercado</span>'
+          : '')}</td>
+      <td class="num">${f.ratio == null ? '—' : nf(f.ratio * 100, 1) + '%'}</td>
+      <td class="num">${f.mercado == null ? '—' : nf(f.mercado)}</td>
+      <td class="num" style="color:${f.desvio == null ? 'inherit' : (Math.abs(f.desvio) <= 3 ? '#8fe3a2' : '#ffb347')}">${
+        f.desvio == null ? '—' : (f.desvio >= 0 ? '+' : '') + nf(f.desvio, 2) + '%'}</td>
+    </tr>`).join('') : '<tr><td colspan="11" class="empty">Sin datos.</td></tr>';
+}
+
+function dibujarTablaRutas() {
+  const tb = document.getElementById('tbody-rutas');
+  if (!RUTAS.length) {
+    tb.innerHTML = '<tr><td colspan="9" class="empty">Todavía no hay rutas en el escenario. ' +
+      'Agregá una arriba para ver su impacto en la proyección.</td></tr>';
+    return;
+  }
+  tb.innerHTML = RUTAS.map(r => `
+    <tr${r.activo ? '' : ' style="opacity:.45;"'}>
+      <td>${r.origin} → ${r.dest}${r.signo === -1 ? ' <span class="pill neg">baja</span>' : ''}</td>
+      <td>${r.tipo}</td>
+      <td>${r.avion || '—'}${r.avion_forzado ? ' <span class="pill">forzado</span>' : ''}</td>
+      <td class="num">${nf(r.vuelos_mes)}</td>
+      <td class="num">${r.pax_por_vuelo == null ? '—' : nf(r.pax_por_vuelo, 0)}</td>
+      <td class="num">${nf(r.m3_por_vuelo, 2)}</td>
+      <td class="num"><b>${nf(r.m3_por_mes, 0)}</b></td>
+      <td>${etiqueta(r.desde_anio, r.desde_mes)}${r.hasta_anio ? ' → ' + etiqueta(r.hasta_anio, r.hasta_mes) : ' →'}</td>
+      <td style="white-space:nowrap;">
+        <button class="small" onclick="editarRuta(${r.id})">Editar</button>
+        <button class="small danger" onclick="borrarRuta(${r.id})">Borrar</button>
+      </td>
+    </tr>`).join('');
+}
+
+// ---------------------------------------------------------------- acciones
+function leerMes(id) {
+  const v = document.getElementById(id).value;
+  if (!v) return { anio: null, mes: null };
+  const [a, m] = v.split('-');
+  return { anio: parseInt(a), mes: parseInt(m) };
+}
+
+function limpiarForm() {
+  editandoId = null;
+  document.getElementById('btn-guardar').textContent = 'Agregar ruta';
+  document.getElementById('btn-cancelar').style.display = 'none';
+  ['f-origin', 'f-dest', 'f-hasta'].forEach(i => document.getElementById(i).value = '');
+  document.getElementById('f-vuelos').value = 60;
+  document.getElementById('f-pax').value = 80;
+  document.getElementById('f-avion').value = '';
+  document.getElementById('f-signo').value = '1';
+  document.getElementById('preview').textContent = '';
+  document.getElementById('ruta-msg').textContent = '';
+}
+
+function editarRuta(id) {
+  const r = RUTAS.find(x => x.id === id);
+  if (!r) return;
+  editandoId = id;
+  document.getElementById('f-origin').value = r.origin;
+  document.getElementById('f-dest').value = r.dest;
+  document.getElementById('f-vuelos').value = r.vuelos_mes;
+  document.getElementById('f-pax').value = r.pax_por_vuelo ?? '';
+  document.getElementById('f-avion').value = r.avion_forzado || '';
+  document.getElementById('f-signo').value = String(r.signo);
+  document.getElementById('f-desde').value = `${r.desde_anio}-${String(r.desde_mes).padStart(2, '0')}`;
+  document.getElementById('f-hasta').value = r.hasta_anio
+    ? `${r.hasta_anio}-${String(r.hasta_mes).padStart(2, '0')}` : '';
+  document.getElementById('btn-guardar').textContent = 'Guardar cambios';
+  document.getElementById('btn-cancelar').style.display = 'block';
+  window.scrollTo({ top: document.getElementById('tabla-rutas').offsetTop - 320, behavior: 'smooth' });
+}
+
+async function guardarRuta() {
+  const msg = document.getElementById('ruta-msg');
+  msg.className = 'err';
+  msg.textContent = '';
+  const desde = leerMes('f-desde'), hasta = leerMes('f-hasta');
+  const payload = {
+    escenario: 'Base',
+    origin: document.getElementById('f-origin').value.trim(),
+    dest: document.getElementById('f-dest').value.trim(),
+    vuelos_mes: document.getElementById('f-vuelos').value,
+    pax_por_vuelo: document.getElementById('f-pax').value,
+    avion_forzado: document.getElementById('f-avion').value,
+    signo: document.getElementById('f-signo').value,
+    desde_anio: desde.anio, desde_mes: desde.mes,
+    hasta_anio: hasta.anio, hasta_mes: hasta.mes,
+    activo: true,
+  };
+  if (editandoId) payload.id = editandoId;
+
+  try {
+    const r = await fetch('/api/proyeccion/rutas/guardar', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const d = await r.json();
+    if (!r.ok || d.error) { msg.textContent = d.error || `Error ${r.status}`; return; }
+    msg.className = 'ok';
+    msg.textContent = editandoId ? 'Ruta actualizada.' : 'Ruta agregada.';
+    limpiarForm();
+    await recargarRutas();
+  } catch (e) {
+    msg.textContent = 'Error de red: ' + e.message;
+  }
+}
+
+async function borrarRuta(id) {
+  const r = RUTAS.find(x => x.id === id);
+  if (!r) return;
+  if (!confirm(`¿Borrar la ruta ${r.origin} → ${r.dest} del escenario?`)) return;
+  try {
+    const res = await fetch(`/api/proyeccion/rutas/${id}/borrar`, { method: 'POST' });
+    const d = await res.json();
+    if (!res.ok || d.error) { alert(d.error || `Error ${res.status}`); return; }
+    if (editandoId === id) limpiarForm();
+    await recargarRutas();
+  } catch (e) {
+    alert('Error de red: ' + e.message);
+  }
+}
+
+function actualizarNotaRutas() {
+  const rutasNote = document.getElementById('rutas-aeroplanta-note');
+  if (!AEROPLANTA) {
+    rutasNote.style.display = 'none';
+    return;
+  }
+  const tocan = RUTAS.filter(r => r.origin === AEROPLANTA || r.dest === AEROPLANTA).length;
+  rutasNote.style.display = 'block';
+  rutasNote.textContent = tocan
+    ? `De las ${RUTAS.length} ruta(s) del escenario, ${tocan} tocan ${AEROPLANTA} y son ` +
+      `las únicas que suman al gráfico de arriba.`
+    : `Ninguna de las rutas del escenario toca ${AEROPLANTA} — el "Aporte del ` +
+      `escenario" de arriba va a dar 0 hasta que agregues una.`;
+}
+
+async function recargarRutas() {
+  const r = await fetch('/api/proyeccion/rutas?escenario=Base');
+  const d = await r.json();
+  if (!d.error) {
+    RUTAS = d.rutas || [];
+    CONFIG = d.config || CONFIG;
+  }
+  actualizarNotaRutas();
+  recalcular();
+}
+
+// ---------------------------------------------------------------- eventos excluidos
+function dibujarTablaExclusiones() {
+  const tb = document.getElementById('tbody-exclusiones');
+  if (!EXCLUSIONES.length) {
+    tb.innerHTML = '<tr><td colspan="4" class="empty">Sin eventos excluidos. Agregá uno ' +
+      'arriba si algún mes de la historia no representa demanda real (cierre de pista, ' +
+      'corte de suministro, etc.).</td></tr>';
+    return;
+  }
+  tb.innerHTML = EXCLUSIONES.map(ex => `
+    <tr${ex.activo ? '' : ' style="opacity:.45;"'}>
+      <td>${ex.aeropuerto || '<i>Todo el país</i>'}</td>
+      <td>${ex.motivo}</td>
+      <td>${etiqueta(ex.desde_anio, ex.desde_mes)} → ${etiqueta(ex.hasta_anio, ex.hasta_mes)}</td>
+      <td style="white-space:nowrap;">
+        <button class="small" onclick="editarExclusion(${ex.id})">Editar</button>
+        <button class="small danger" onclick="borrarExclusion(${ex.id})">Borrar</button>
+      </td>
+    </tr>`).join('');
+}
+
+function limpiarFormExclusion() {
+  editandoExclusionId = null;
+  document.getElementById('btnx-guardar').textContent = 'Agregar';
+  document.getElementById('btnx-cancelar').style.display = 'none';
+  document.getElementById('fx-aeroplanta').value = '';
+  document.getElementById('fx-desde').value = '';
+  document.getElementById('fx-hasta').value = '';
+  document.getElementById('fx-motivo').value = '';
+  document.getElementById('exclusion-msg').textContent = '';
+}
+
+function editarExclusion(id) {
+  const ex = EXCLUSIONES.find(e => e.id === id);
+  if (!ex) return;
+  editandoExclusionId = id;
+  document.getElementById('fx-aeroplanta').value = ex.aeropuerto || '';
+  document.getElementById('fx-desde').value = `${ex.desde_anio}-${String(ex.desde_mes).padStart(2, '0')}`;
+  document.getElementById('fx-hasta').value = `${ex.hasta_anio}-${String(ex.hasta_mes).padStart(2, '0')}`;
+  document.getElementById('fx-motivo').value = ex.motivo;
+  document.getElementById('btnx-guardar').textContent = 'Guardar cambios';
+  document.getElementById('btnx-cancelar').style.display = 'block';
+  window.scrollTo({ top: document.getElementById('fx-aeroplanta').offsetTop - 320, behavior: 'smooth' });
+}
+
+async function guardarExclusion() {
+  const msg = document.getElementById('exclusion-msg');
+  msg.className = 'err';
+  msg.textContent = '';
+  const desde = leerMes('fx-desde'), hasta = leerMes('fx-hasta');
+  if (!desde.anio || !hasta.anio) {
+    msg.textContent = 'Completá el mes de inicio y el de fin.';
+    return;
+  }
+  const payload = {
+    aeropuerto: document.getElementById('fx-aeroplanta').value,
+    motivo: document.getElementById('fx-motivo').value.trim(),
+    desde_anio: desde.anio, desde_mes: desde.mes,
+    hasta_anio: hasta.anio, hasta_mes: hasta.mes,
+    activo: true,
+  };
+  if (editandoExclusionId) payload.id = editandoExclusionId;
+
+  try {
+    const r = await fetch('/api/proyeccion/exclusiones/guardar', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const d = await r.json();
+    if (!r.ok || d.error) { msg.textContent = d.error || `Error ${r.status}`; return; }
+    msg.className = 'ok';
+    msg.textContent = editandoExclusionId ? 'Evento actualizado.' : 'Evento agregado.';
+    limpiarFormExclusion();
+    await recargarExclusiones();
+  } catch (e) {
+    msg.textContent = 'Error de red: ' + e.message;
+  }
+}
+
+async function borrarExclusion(id) {
+  const ex = EXCLUSIONES.find(e => e.id === id);
+  if (!ex) return;
+  if (!confirm(`¿Borrar el evento "${ex.motivo}" (${ex.aeropuerto || 'todo el país'})?`)) return;
+  try {
+    const res = await fetch(`/api/proyeccion/exclusiones/${id}/borrar`, { method: 'POST' });
+    const d = await res.json();
+    if (!res.ok || d.error) { alert(d.error || `Error ${res.status}`); return; }
+    if (editandoExclusionId === id) limpiarFormExclusion();
+    await recargarExclusiones();
+  } catch (e) {
+    alert('Error de red: ' + e.message);
+  }
+}
+
+async function recargarExclusiones() {
+  const r = await fetch('/api/proyeccion/exclusiones');
+  const d = await r.json();
+  if (!d.error) EXCLUSIONES = d.exclusiones || [];
+  dibujarTablaExclusiones();
+  // Los eventos excluidos cambian qué meses de SERIE vienen marcados `excluido` desde el
+  // backend (ver /api/consumo_nacional) — hay que volver a pedir la serie para la aeroplanta
+  // actual, no solo redibujar con los datos viejos.
+  await cargarSerie(AEROPLANTA);
+  recalcular();
+}
+
+// Mini-herramienta: "¿por qué no veo el despacho real de tal mes?" El punto del gráfico
+// sale de sumar TODO lo que haya en FuelSale para ese año/mes exacto (sin filtrar por
+// aeropuerto, salvo que se esté mirando una aeroplanta puntual) — si no aparece, casi
+// siempre es porque ese año/mes no tiene ninguna fila cargada todavía, no porque el
+// gráfico lo esté escondiendo.
+async function verificarDespachoReal() {
+  const anio = document.getElementById('fd-anio').value;
+  const mes = document.getElementById('fd-mes').value;
+  const out = document.getElementById('fd-resultado');
+  if (!anio || !mes) { out.textContent = 'Completá año y mes.'; return; }
+  out.textContent = 'Consultando…';
+  try {
+    const params = new URLSearchParams({ anio, mes });
+    if (AEROPLANTA) params.set('aeropuerto', AEROPLANTA);
+    const r = await fetch(`/api/fuel_sales_diagnostico?${params}`);
+    const d = await r.json();
+    if (d.error) { out.textContent = 'Error: ' + d.error; return; }
+
+    if (d.total_registros_periodo === 0) {
+      const cercanos = d.periodos_con_datos
+        .filter(p => p.anio === parseInt(anio, 10))
+        .map(p => `${p.anio}-${String(p.mes).padStart(2, '0')}`);
+      out.innerHTML = `No hay <b>ningún</b> registro de FuelSale cargado para ${mes}/${anio}` +
+        (AEROPLANTA ? ` en ${AEROPLANTA}` : '') + `. El Excel de ese período no llegó a la ` +
+        `base todavía (o se guardó bajo otro año/mes) — no es que el gráfico lo esté ` +
+        `escondiendo.` +
+        (cercanos.length ? `<br>Períodos con datos cargados en ${anio}: ${cercanos.join(', ')}.`
+                         : `<br>No hay ningún mes de ${anio} con datos cargados.`);
+    } else {
+      out.innerHTML = `Sí hay datos: <b>${d.total_registros_periodo}</b> registro(s), ` +
+        `<b>${d.total_volumen_periodo_m3.toLocaleString('es-AR', {maximumFractionDigits: 1})} m³</b> ` +
+        `para ${mes}/${anio}${AEROPLANTA ? ' en ' + AEROPLANTA : ''}. Si el gráfico no lo muestra, ` +
+        `probá refrescar la página (puede estar mostrando una carga de antes de subir el Excel).` +
+        (d.total_registros_sin_match
+          ? `<br>⚠ De esos, ${d.total_registros_sin_match} no coinciden con ningún aeropuerto ` +
+            `conocido: ${d.aeropuertos_sin_match.map(a => a.aeropuerto).join(', ')}.`
+          : '');
+    }
+  } catch (e) {
+    out.textContent = 'Error de red: ' + e.message;
+  }
+}
+
+// ---------------------------------------------------------------- mercado real
+async function subirMercado() {
+  const input = document.getElementById('fm-file');
+  const msg = document.getElementById('fm-msg');
+  msg.className = 'err';
+  if (!input.files || !input.files[0]) { msg.textContent = 'Elegí un archivo primero.'; return; }
+  msg.textContent = 'Subiendo…';
+  try {
+    const fd = new FormData();
+    fd.append('file', input.files[0]);
+    const r = await fetch('/api/proyeccion/mercado/upload', { method: 'POST', body: fd });
+    const d = await r.json();
+    if (!r.ok || d.error) { msg.textContent = d.error || `Error ${r.status}`; return; }
+    msg.className = 'ok';
+    msg.textContent = `Listo: ${d.insertados} mes(es) nuevo(s), ${d.actualizados} actualizado(s).` +
+      ((d.warnings && d.warnings.length) ? ' Avisos: ' + d.warnings.join(' · ') : '');
+    input.value = '';
+    await recargarMercado();
+  } catch (e) {
+    msg.textContent = 'Error de red: ' + e.message;
+  }
+}
+
+async function recargarMercado() {
+  try {
+    const r = await fetch('/api/proyeccion/mercado');
+    const d = await r.json();
+    if (!d.error) MERCADO = d.mercado || [];
+  } catch (e) { MERCADO = []; }
+  // El desvío del modelo lo calcula el backend contra la serie, así que hay que volver a
+  // pedirla para que la tabla de detalle y los KPIs lo reflejen.
+  await cargarSerie(AEROPLANTA);
+  recalcular();  // recalcular() ya redibuja la tabla de mercado, con las filas proyectadas
+}
+
+function dibujarTablaMercado(proy) {
+  const tb = document.getElementById('tbody-mercado');
+  const kpis = document.getElementById('kpis-mercado');
+  if (!MERCADO.length) {
+    tb.innerHTML = '<tr><td colspan="9" class="empty">Sin datos de mercado cargados. ' +
+      'Subí la planilla para poder medir el desvío del modelo.</td></tr>';
+    kpis.innerHTML = '';
+    return;
+  }
+
+  // Se busca el valor del modelo tanto en el histórico como en la proyección: un mes de
+  // mercado ya cargado puede corresponder a un mes que el modelo todavía proyecta (el Excel
+  // de mercado suele llegar antes que el de rutas de ANAC), y ahí el contraste es igual de
+  // válido — de hecho es el más útil, porque mide cuánto le erró la proyección.
+  const porPeriodo = new Map([
+    ...SERIE.map(s => [`${s.anio}-${s.mes}`, s]),
+    ...(proy || []).map(f => [`${f.anio}-${f.mes}`, f]),
+  ]);
+  const filas = MERCADO.map(m => {
+    const s = porPeriodo.get(`${m.anio}-${m.mes}`);
+    return { ...m, modelo: s ? s.total_m3 : null, desvio: s ? s.desvio_modelo_pct : null };
+  });
+
+  tb.innerHTML = filas.map(f => `
+    <tr>
+      <td>${etiqueta(f.anio, f.mes)}</td>
+      <td class="num"><b>${nf(f.total_m3)}</b></td>
+      <td class="num">${f.ypf_m3 == null ? '—' : nf(f.ypf_m3)}</td>
+      <td class="num">${f.axion_m3 == null ? '—' : nf(f.axion_m3)}</td>
+      <td class="num">${f.shell_m3 == null ? '—' : nf(f.shell_m3)}</td>
+      <td class="num">${nf(f.otros_m3)}</td>
+      <td class="num">${f.share_ypf == null ? '—' : nf(f.share_ypf * 100, 1) + '%'}</td>
+      <td class="num">${f.modelo == null ? '—' : nf(f.modelo)}</td>
+      <td class="num" style="color:${f.desvio == null ? 'inherit' : (Math.abs(f.desvio) <= 3 ? '#8fe3a2' : '#ffb347')}">${
+        f.desvio == null ? '—' : (f.desvio >= 0 ? '+' : '') + nf(f.desvio, 2) + '%'}</td>
+    </tr>`).join('');
+
+  const comparables = filas.filter(f => f.desvio != null);
+  const shares = filas.filter(f => f.share_ypf != null);
+  const desvioProm = comparables.length
+    ? comparables.reduce((a, f) => a + f.desvio, 0) / comparables.length : null;
+  // El desvío ABSOLUTO promedio es la métrica honesta de precisión: un mes +3% y otro -3%
+  // se cancelarían en el promedio simple y darían 0, aparentando una exactitud que no hay.
+  const desvioAbs = comparables.length
+    ? comparables.reduce((a, f) => a + Math.abs(f.desvio), 0) / comparables.length : null;
+  const shareProm = shares.length
+    ? shares.reduce((a, f) => a + f.share_ypf, 0) / shares.length : null;
+
+  kpis.innerHTML = `
+    <div class="kpi"><div class="k">Meses comparables</div>
+      <div class="v">${comparables.length}</div>
+      <div class="n">de ${filas.length} mes(es) de mercado cargados</div></div>
+    <div class="kpi"><div class="k">Desvío promedio del modelo</div>
+      <div class="v">${desvioProm == null ? '—' : (desvioProm >= 0 ? '+' : '') + nf(desvioProm, 2) + '%'}</div>
+      <div class="n">signo: + sobreestima, − subestima</div></div>
+    <div class="kpi"><div class="k">Desvío absoluto promedio</div>
+      <div class="v">${desvioAbs == null ? '—' : nf(desvioAbs, 2) + '%'}</div>
+      <div class="n">precisión real (los signos no se cancelan)</div></div>
+    <div class="kpi"><div class="k">Share YPF promedio</div>
+      <div class="v">${shareProm == null ? '—' : nf(shareProm * 100, 1) + '%'}</div>
+      <div class="n">sobre el total del mercado real</div></div>`;
+}
+
+// Muestra, año por año, qué meses de ANAC hay cargados. Es la respuesta directa a "¿por qué
+// la estacionalidad saltea tal año?": si tiene menos de 12 meses, acá se ve exactamente
+// cuáles faltan, sin tener que abrir el Excel ni el panel de admin.
+async function verCoberturaAnac() {
+  const cont = document.getElementById('cobertura-anac');
+  if (cont.style.display === 'block') { cont.style.display = 'none'; return; }
+  cont.style.display = 'block';
+  cont.innerHTML = '<div class="note">Consultando…</div>';
+  try {
+    const r = await fetch('/api/cobertura_anac');
+    const d = await r.json();
+    if (d.error) { cont.innerHTML = `<div class="err">Error: ${d.error}</div>`; return; }
+    cont.innerHTML = `
+      <table>
+        <thead><tr><th>Año</th><th class="num">Meses</th><th>Estado</th>
+                   <th>Meses faltantes</th><th>Origen</th></tr></thead>
+        <tbody>${d.cobertura.map(c => `
+          <tr${c.completo ? '' : ' style="background:rgba(255,179,71,0.06);"'}>
+            <td>${c.anio}</td>
+            <td class="num">${c.meses}</td>
+            <td><span class="pill${c.completo ? ' real' : ''}">${c.completo ? 'completo' : 'incompleto'}</span></td>
+            <td>${c.faltantes.length ? c.faltantes.join(', ') : '—'}</td>
+            <td>${c.origen}</td>
+          </tr>`).join('')}</tbody>
+      </table>
+      <div class="note" style="margin-top:8px;">
+        Solo los años <b>completos</b> (12 meses) entran en el cálculo de estacionalidad.
+        Si a un año le faltan meses, subí el Excel de ANAC correspondiente desde
+        <a href="/admin" target="_blank" style="color:#8fb2ff;">/admin</a> y ese año pasa a
+        estar disponible.
+      </div>
+      ${(d.descartadas_por_calidad || []).length ? `
+        <div class="warn" style="margin-top:10px;">
+          ⚠ ${d.descartadas_por_calidad.length} fila(s) del histórico descartadas por tener
+          más de 500 pasajeros por vuelo (físicamente imposible — ningún avión de la flota
+          llega a eso). Es un dato corrompido en el archivo original de ANAC, no un error de
+          esta app; se excluyen para no arrastrar un promedio imposible al resto del sistema.
+          <div style="margin-top:6px; font-size:11px; opacity:.85;">
+            ${d.descartadas_por_calidad.slice(0, 15).map(f =>
+              `${f.origin}-${f.dest} ${f.year}-${f.month} (${f.vuelos} vuelo(s), ` +
+              `${f.pax.toLocaleString('es-AR')} pax)`).join(' · ')}
+            ${d.descartadas_por_calidad.length > 15 ? ` · y ${d.descartadas_por_calidad.length - 15} más` : ''}
+          </div>
+        </div>` : ''}`;
+  } catch (e) {
+    cont.innerHTML = `<div class="err">Error de red: ${e.message}</div>`;
+  }
+}
+
+// ---------------------------------------------------------------- estimación de tendencia
+// Resuelve A·x = b por eliminación de Gauss con pivoteo parcial. El sistema es de 13x13
+// (constante + tendencia + 11 dummies mensuales), así que no hace falta nada más pesado.
+function resolverSistema(A, b) {
+  const n = A.length;
+  const M = A.map((fila, i) => [...fila, b[i]]);
+  for (let col = 0; col < n; col++) {
+    let piv = col;
+    for (let r = col + 1; r < n; r++) if (Math.abs(M[r][col]) > Math.abs(M[piv][col])) piv = r;
+    if (Math.abs(M[piv][col]) < 1e-12) return null;  // singular
+    [M[col], M[piv]] = [M[piv], M[col]];
+    for (let r = 0; r < n; r++) {
+      if (r === col) continue;
+      const f = M[r][col] / M[col][col];
+      for (let cc = col; cc <= n; cc++) M[r][cc] -= f * M[col][cc];
+    }
+  }
+  return M.map((fila, i) => fila[n] / fila[i]);
+}
+
+// Ajusta log(y) = a + b·t + Σ(dummies mensuales) por mínimos cuadrados y devuelve el
+// crecimiento anual implícito. Se trabaja en logaritmos porque la estacionalidad del
+// consumo es multiplicativa (un enero es ~15% más alto que el mes promedio, no "+20.000 m³"
+// fijos), y así la pendiente b es directamente una tasa de crecimiento compuesta.
+function estimarCrecimientoAnual(campo, meses) {
+  const datos = SERIE.filter(s => !s.excluido && s[campo] > 0).slice(-meses);
+  if (datos.length < 24) return null;  // menos de 2 años: la estacionalidad no se identifica
+
+  const t0 = mesIndex(datos[0].anio, datos[0].mes);
+  const X = [], y = [];
+  for (const s of datos) {
+    const t = mesIndex(s.anio, s.mes) - t0;
+    const fila = [1, t];
+    for (let m = 2; m <= 12; m++) fila.push(s.mes === m ? 1 : 0);
+    X.push(fila);
+    y.push(Math.log(s[campo]));
+  }
+  const k = X[0].length;
+  const XtX = [], Xty = [];
+  for (let a = 0; a < k; a++) {
+    const fila = [];
+    for (let b = 0; b < k; b++) fila.push(X.reduce((acc, r) => acc + r[a] * r[b], 0));
+    XtX.push(fila);
+    Xty.push(X.reduce((acc, r, i) => acc + r[a] * y[i], 0));
+  }
+  const beta = resolverSistema(XtX, Xty);
+  if (!beta) return null;
+  return { crecimientoAnual: Math.exp(beta[1] * 12) - 1, n: datos.length };
+}
+
+function estimarCrecimiento() {
+  const msg = document.getElementById('regresion-msg');
+  const nAnios = parseInt(document.getElementById('f-anios').value) || 3;
+  const meses = Math.max(24, nAnios * 12);
+
+  const cab = estimarCrecimientoAnual('cabotaje_m3', meses);
+  const intl = estimarCrecimientoAnual('internacional_m3', meses);
+  if (!cab || !intl) {
+    msg.style.color = '#ff9a9a';
+    msg.textContent = 'No hay suficiente historia continua para estimar la tendencia ' +
+      '(hacen falta al menos 24 meses).';
+    return;
+  }
+
+  document.getElementById('f-gcab').value = (cab.crecimientoAnual * 100).toFixed(1);
+  document.getElementById('f-gintl').value = (intl.crecimientoAnual * 100).toFixed(1);
+  msg.style.color = '#9aa4c7';
+  msg.innerHTML = `Estimado sobre los últimos ${cab.n} meses: cabotaje ` +
+    `<b>${(cab.crecimientoAnual * 100).toFixed(1)}%</b> anual, internacional ` +
+    `<b>${(intl.crecimientoAnual * 100).toFixed(1)}%</b> anual. ` +
+    `Son los valores que mejor explican la historia reciente, no un pronóstico: si sabés que ` +
+    `viene una apertura o un cierre de rutas, conviene ajustarlos a mano o cargarlo como ruta ` +
+    `del escenario. Acordate de "Guardar supuestos".`;
+  recalcular();
+}
+
+// ---------------------------------------------------------------- tipo de cambio
+async function subirFX() {
+  const input = document.getElementById('ffx-file');
+  const msg = document.getElementById('ffx-msg');
+  msg.className = 'err';
+  if (!input.files || !input.files[0]) { msg.textContent = 'Elegí un archivo primero.'; return; }
+  msg.textContent = 'Subiendo…';
+  try {
+    const fd = new FormData();
+    fd.append('file', input.files[0]);
+    const r = await fetch('/api/proyeccion/fx/upload', { method: 'POST', body: fd });
+    const d = await r.json();
+    if (!r.ok || d.error) { msg.textContent = d.error || `Error ${r.status}`; return; }
+    msg.className = 'ok';
+    msg.textContent = `Listo: ${d.insertados} mes(es) nuevo(s), ${d.actualizados} actualizado(s).` +
+      ((d.warnings && d.warnings.length) ? ' Avisos: ' + d.warnings.join(' · ') : '');
+    input.value = '';
+    const r2 = await fetch('/api/proyeccion/fx');
+    const d2 = await r2.json();
+    if (!d2.error) FX = d2.fx || [];
+    dibujarTablaFX();
+    dibujarGraficoFX();
+  } catch (e) {
+    msg.textContent = 'Error de red: ' + e.message;
+  }
+}
+
+function dibujarTablaFX() {
+  const tb = document.getElementById('tbody-fx');
+  if (!FX.length) {
+    tb.innerHTML = '<tr><td colspan="3" class="empty">Sin datos de tipo de cambio cargados.</td></tr>';
+    return;
+  }
+  const ordenado = [...FX].sort((a, b) => (a.anio - b.anio) || (a.mes - b.mes));
+  tb.innerHTML = ordenado.map((f, i) => {
+    const prev = i > 0 ? ordenado[i - 1] : null;
+    const variacion = prev ? (f.valor / prev.valor - 1) * 100 : null;
+    return `<tr>
+      <td>${etiqueta(f.anio, f.mes)}</td>
+      <td class="num">${nf(f.valor, 2)}</td>
+      <td class="num" style="color:${variacion == null ? 'inherit' : (variacion >= 0 ? '#8fe3a2' : '#ff9ab0')}">${
+        variacion == null ? '—' : (variacion >= 0 ? '+' : '') + nf(variacion, 1) + '%'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// Ajusta log(internacional) = a + b·tiempo + c·log(tipo_de_cambio) + estacionalidad, por
+// mínimos cuadrados, sobre los meses donde SERIE y FX se superponen. El coeficiente c es
+// la elasticidad: cuánto varía el tráfico internacional por cada 1% de variación del tipo
+// de cambio (positivo = un tipo de cambio más alto empuja el tráfico hacia arriba, ej. más
+// turismo receptivo o más gente viajando con dólares ahorrados; negativo = lo frena, ej.
+// menos poder de compra para viajar afuera). El signo y la magnitud dependen de qué mezcla
+// de vuelos salientes/entrantes tenga tu tráfico internacional, así que hay que mirar el
+// número con la ruta puesta, no asumirlo.
+function estimarElasticidadFX() {
+  const msg = document.getElementById('elasticidad-msg');
+  if (FX.length < 24) {
+    msg.style.color = '#ff9a9a';
+    msg.textContent = 'Hacen falta al menos 24 meses de tipo de cambio cargados para poder ' +
+      'separar la tendencia, la estacionalidad y el efecto cambiario con confianza.';
+    return;
+  }
+
+  const fxPorPeriodo = new Map(FX.map(f => [`${f.anio}-${f.mes}`, f.valor]));
+  const datos = SERIE
+    .filter(s => !s.excluido && s.internacional_m3 > 0 && fxPorPeriodo.has(`${s.anio}-${s.mes}`))
+    .map(s => ({ ...s, fx: fxPorPeriodo.get(`${s.anio}-${s.mes}`) }));
+
+  if (datos.length < 24) {
+    msg.style.color = '#ff9a9a';
+    msg.textContent = `Solo hay ${datos.length} meses donde el histórico y el tipo de cambio ` +
+      'se superponen (hacen falta al menos 24). Cargá más historia de alguno de los dos.';
+    return;
+  }
+
+  const t0 = mesIndex(datos[0].anio, datos[0].mes);
+  const X = [], y = [];
+  for (const d of datos) {
+    const t = mesIndex(d.anio, d.mes) - t0;
+    const fila = [1, t, Math.log(d.fx)];
+    for (let m = 2; m <= 12; m++) fila.push(d.mes === m ? 1 : 0);
+    X.push(fila);
+    y.push(Math.log(d.internacional_m3));
+  }
+  const k = X[0].length;
+  const XtX = [], Xty = [];
+  for (let a = 0; a < k; a++) {
+    const fila = [];
+    for (let b = 0; b < k; b++) fila.push(X.reduce((acc, r) => acc + r[a] * r[b], 0));
+    XtX.push(fila);
+    Xty.push(X.reduce((acc, r, i) => acc + r[a] * y[i], 0));
+  }
+  const beta = resolverSistema(XtX, Xty);
+  if (!beta) {
+    msg.style.color = '#ff9a9a';
+    msg.textContent = 'No se pudo separar la tendencia del efecto cambiario (el sistema queda ' +
+      'indeterminado). Pasa cuando el tipo de cambio se movió como una recta muy suave en todo ' +
+      'el período — un "crawling peg" sin sobresaltos es matemáticamente indistinguible de la ' +
+      'tendencia de fondo. Hace falta que el tipo de cambio tenga algún salto o vaivén propio ' +
+      '(una devaluación, una corrección) para poder aislar su efecto del resto.';
+    return;
+  }
+  const elasticidad = beta[2];
+  const crecimientoAnual = Math.exp(beta[1] * 12) - 1;
+
+  // Mismo diagnóstico que salarios: qué tan colineal está el tipo de cambio elegido con el
+  // tiempo. Un ITCRM (ya real) suele dar bajo; un dólar nominal sin deflactar, alto.
+  const ts = datos.map(d => mesIndex(d.anio, d.mes) - t0);
+  const logs = datos.map(d => Math.log(d.fx));
+  const mt = ts.reduce((a, b) => a + b, 0) / ts.length;
+  const ml = logs.reduce((a, b) => a + b, 0) / logs.length;
+  const cov = ts.reduce((acc, t, i) => acc + (t - mt) * (logs[i] - ml), 0) / ts.length;
+  const vt = ts.reduce((acc, t) => acc + (t - mt) ** 2, 0) / ts.length;
+  const vl = logs.reduce((acc, l) => acc + (l - ml) ** 2, 0) / logs.length;
+  const correlacionConTiempo = cov / Math.sqrt(vt * vl);
+
+  msg.style.color = Math.abs(correlacionConTiempo) > 0.9 ? '#ffb347' : '#9aa4c7';
+  msg.innerHTML = `Sobre ${datos.length} meses: elasticidad del tráfico internacional al ` +
+    `tipo de cambio = <b>${elasticidad.toFixed(2)}</b> (cada 1% de suba en el tipo de cambio ` +
+    `se asocia con ${elasticidad >= 0 ? 'un' : 'una caída del'} ${Math.abs(elasticidad).toFixed(2)}% ` +
+    `${elasticidad >= 0 ? 'de aumento' : ''} en el tráfico). Tendencia de fondo (ya neta del ` +
+    `efecto cambiario): <b>${(crecimientoAnual * 100).toFixed(1)}%</b> anual.` +
+    `<br>Correlación del tipo de cambio cargado con el tiempo: <b>${correlacionConTiempo.toFixed(2)}</b>` +
+    (Math.abs(correlacionConTiempo) > 0.9
+      ? ' — alta: si es un dólar nominal sin deflactar, se mueve casi como una recta y este ' +
+        'resultado es poco confiable. Con un índice real (ITCRM) esto debería bajar.'
+      : '.') +
+    ` Este número es informativo — no pisa el campo "Crecimiento anual internacional" solo, ` +
+    `porque para proyectarlo hacia adelante hace falta ADEMÁS un supuesto de hacia dónde va ` +
+    `el tipo de cambio, que es tan una apuesta como cualquier otro supuesto de esta pantalla.`;
+}
+
+// ---------------------------------------------------------------- índice salarial
+async function subirSalarios() {
+  const input = document.getElementById('fsal-file');
+  const msg = document.getElementById('fsal-msg');
+  msg.className = 'err';
+  if (!input.files || !input.files[0]) { msg.textContent = 'Elegí un archivo primero.'; return; }
+  msg.textContent = 'Subiendo…';
+  try {
+    const fd = new FormData();
+    fd.append('file', input.files[0]);
+    fd.append('categoria', 'salario');
+    const r = await fetch('/api/proyeccion/indices/upload', { method: 'POST', body: fd });
+    const d = await r.json();
+    if (!r.ok || d.error) { msg.textContent = d.error || `Error ${r.status}`; return; }
+    msg.className = 'ok';
+    msg.textContent = `Listo: ${d.insertados} registro(s) nuevo(s), ${d.actualizados} ` +
+      `actualizado(s), sub-series: ${(d.series || []).join(', ')}.` +
+      ((d.warnings && d.warnings.length) ? ' Avisos: ' + d.warnings.join(' · ') : '');
+    input.value = '';
+    const r2 = await fetch('/api/proyeccion/indices?categoria=salario');
+    const d2 = await r2.json();
+    if (!d2.error) SALARIOS = d2.indices || [];
+    dibujarTablaSalarios();
+    dibujarGraficoSalarios();
+  } catch (e) {
+    msg.textContent = 'Error de red: ' + e.message;
+  }
+}
+
+// ---------------------------------------------------------------- IPC (deflactor)
+async function subirIPC() {
+  const input = document.getElementById('fipc-file');
+  const msg = document.getElementById('fipc-msg');
+  msg.className = 'err';
+  if (!input.files || !input.files[0]) { msg.textContent = 'Elegí un archivo primero.'; return; }
+  msg.textContent = 'Subiendo…';
+  try {
+    const fd = new FormData();
+    fd.append('file', input.files[0]);
+    fd.append('categoria', 'ipc');
+    const r = await fetch('/api/proyeccion/indices/upload', { method: 'POST', body: fd });
+    const d = await r.json();
+    if (!r.ok || d.error) { msg.textContent = d.error || `Error ${r.status}`; return; }
+    msg.className = 'ok';
+    msg.textContent = `Listo: ${d.insertados} registro(s) nuevo(s), ${d.actualizados} ` +
+      `actualizado(s), divisiones: ${(d.series || []).length}.` +
+      ((d.warnings && d.warnings.length) ? ' Avisos: ' + d.warnings.slice(0, 5).join(' · ') : '');
+    input.value = '';
+
+    const r2 = await fetch('/api/proyeccion/indices?categoria=ipc');
+    const d2 = await r2.json();
+    if (!d2.error) IPC = d2.indices || [];
+
+    const sel = document.getElementById('fipc-division');
+    if (sel) {
+      const divisiones = [...new Set(IPC.map(i => i.nombre))].sort((a, b) => a.localeCompare(b, 'es'));
+      const actual = sel.value;
+      sel.innerHTML = '<option value="">Sin deflactar (usar nominal)</option>' +
+        divisiones.map(n => `<option value="${n}">${n}</option>`).join('');
+      if (divisiones.includes(actual)) sel.value = actual;
+      else if (divisiones.includes('Nivel General')) sel.value = 'Nivel General';
+    }
+
+    dibujarGraficoSalarios();
+  } catch (e) {
+    msg.textContent = 'Error de red: ' + e.message;
+  }
+}
+
+// ---------------------------------------------------------------- gráficos FX y salarios
+// Mismo lenguaje visual que dibujarGrafico() (proyección de mercado): fondo oscuro, eje de
+// fecha real con range slider, tooltip armado a mano (hoverinfo:'text' sobre una serie
+// invisible) en vez del hover automático de Plotly, por el mismo motivo documentado ahí.
+function dibujarGraficoFX() {
+  const cont = document.getElementById('chart-fx');
+  if (!cont) return;
+  const serie = [...FX].sort((a, b) => mesIndex(a.anio, a.mes) - mesIndex(b.anio, b.mes));
+  if (!serie.length) {
+    Plotly.purge('chart-fx');
+    cont.innerHTML = '<div class="empty">Sin datos de tipo de cambio cargados.</div>';
+    return;
+  }
+  cont.innerHTML = '';
+
+  const x = serie.map(f => isoDate(f.anio, f.mes));
+  const y = serie.map(f => f.valor);
+  const variacion = serie.map((f, i) =>
+    i === 0 || !serie[i - 1].valor ? null : (f.valor / serie[i - 1].valor - 1) * 100);
+  const hoverTexts = serie.map((f, i) => {
+    const lineas = [`<b>${etiqueta(f.anio, f.mes)}</b>`, `Valor: ${nf(f.valor, 2)}`];
+    if (variacion[i] != null) {
+      lineas.push(`Variación mensual: ${variacion[i] >= 0 ? '+' : ''}${nf(variacion[i], 1)}%`);
+    }
+    return lineas.join('<br>');
+  });
+
+  Plotly.newPlot('chart-fx', [
+    { x, y, name: 'Tipo de cambio', type: 'scatter', mode: 'lines',
+      line: { color: '#4c7cf0', width: 2 }, hoverinfo: 'text', hovertext: hoverTexts },
+  ], {
+    paper_bgcolor: '#10162e', plot_bgcolor: '#10162e',
+    font: { color: '#c8cfe6', size: 11 },
+    margin: { l: 56, r: 18, t: 12, b: 60 },
+    xaxis: {
+      gridcolor: '#1e2748', type: 'date',
+      showspikes: true, spikemode: 'across', spikesnap: 'cursor',
+      spikethickness: 1, spikedash: 'dot', spikecolor: '#8b93b8',
+      rangeslider: { visible: true, bgcolor: '#0b1020', bordercolor: '#2a3358', thickness: 0.09 },
+    },
+    yaxis: { gridcolor: '#1e2748', title: 'Tipo de cambio' },
+    hovermode: 'x',
+    hoverlabel: { bgcolor: '#161d3d', bordercolor: '#3a4470', font: { color: '#e4e8f5', size: 12 } },
+  }, { displayModeBar: false, responsive: true });
+
+  poblarSelectsRango(serie, 'rango-fx-desde', 'rango-fx-hasta');
+}
+
+// Muestra la sub-serie nominal elegida en #fsal-serie y, si hay IPC cargado para la
+// división elegida en #fipc-division, superpone el salario REAL (nominal / IPC) rebasado
+// a 100 en el primer mes en que ambas series se superponen, en un eje derecho aparte —
+// nominal e IPC viven en escalas completamente distintas, así que sin rebasar la curva
+// real quedaría aplastada contra el eje.
+function dibujarGraficoSalarios() {
+  const cont = document.getElementById('chart-salarios');
+  if (!cont) return;
+
+  const nominal = serieSalarialElegida();
+  if (!nominal.length) {
+    Plotly.purge('chart-salarios');
+    cont.innerHTML = '<div class="empty">Sin datos de salarios cargados para esta sub-serie.</div>';
+    return;
+  }
+  cont.innerHTML = '';
+
+  const divisionEl = document.getElementById('fipc-division');
+  const divisionElegida = divisionEl ? divisionEl.value : '';
+  const ipcPorPeriodo = new Map(
+    IPC.filter(i => i.nombre === divisionElegida).map(i => [`${i.anio}-${i.mes}`, i.valor]));
+
+  const x = nominal.map(s => isoDate(s.anio, s.mes));
+  const yNominal = nominal.map(s => s.valor);
+
+  let yReal = null;
+  if (divisionElegida && ipcPorPeriodo.size) {
+    let base = null;
+    for (const s of nominal) {
+      const ipc = ipcPorPeriodo.get(`${s.anio}-${s.mes}`);
+      if (ipc) { base = s.valor / ipc; break; }
+    }
+    if (base) {
+      yReal = nominal.map(s => {
+        const ipc = ipcPorPeriodo.get(`${s.anio}-${s.mes}`);
+        return ipc ? (s.valor / ipc) / base * 100 : null;
+      });
+    }
+  }
+
+  const hoverTexts = nominal.map((s, i) => {
+    const lineas = [`<b>${etiqueta(s.anio, s.mes)}</b>`, `Nominal: ${nf(s.valor, 2)}`];
+    if (yReal && yReal[i] != null) lineas.push(`Real (base 100): ${nf(yReal[i], 1)}`);
+    return lineas.join('<br>');
+  });
+
+  const traces = [
+    { x, y: yNominal, name: 'Salario nominal', type: 'scatter', mode: 'lines',
+      line: { color: '#4c7cf0', width: 2 }, hoverinfo: 'skip' },
+  ];
+  if (yReal) {
+    traces.push({
+      x, y: yReal, name: 'Salario real (base 100, eje der.)', type: 'scatter', mode: 'lines',
+      line: { color: '#8fe3a2', width: 2, dash: 'dot' }, yaxis: 'y2', hoverinfo: 'skip',
+    });
+  }
+  traces.push({
+    x, y: yNominal, name: '', type: 'scatter', mode: 'markers',
+    marker: { opacity: 0, size: 14 }, showlegend: false,
+    hoverinfo: 'text', hovertext: hoverTexts,
+  });
+
+  const layout = {
+    paper_bgcolor: '#10162e', plot_bgcolor: '#10162e',
+    font: { color: '#c8cfe6', size: 11 },
+    margin: { l: 56, r: yReal ? 56 : 18, t: 12, b: 60 },
+    xaxis: {
+      gridcolor: '#1e2748', type: 'date',
+      showspikes: true, spikemode: 'across', spikesnap: 'cursor',
+      spikethickness: 1, spikedash: 'dot', spikecolor: '#8b93b8',
+      rangeslider: { visible: true, bgcolor: '#0b1020', bordercolor: '#2a3358', thickness: 0.09 },
+    },
+    yaxis: { gridcolor: '#1e2748', title: 'Índice nominal' },
+    legend: { orientation: 'h', y: -0.35 },
+    hovermode: 'x',
+    hoverlabel: { bgcolor: '#161d3d', bordercolor: '#3a4470', font: { color: '#e4e8f5', size: 12 } },
+  };
+  if (yReal) {
+    layout.yaxis2 = { overlaying: 'y', side: 'right', gridcolor: 'transparent', title: 'Salario real (base 100)' };
+  }
+
+  Plotly.newPlot('chart-salarios', traces, layout, { displayModeBar: false, responsive: true });
+
+  poblarSelectsRango(nominal, 'rango-sal-desde', 'rango-sal-hasta');
+}
+
+// ---------------------------------------------------------------- rango de meses (FX / salarios)
+// Misma idea que el rango de meses del gráfico principal (poblarSelectsRangoMeses /
+// aplicarRangoMeses / limpiarRangoMeses), pero factorizada para reusarla en dos gráficos
+// más chicos que no tienen mosaico de años: acá alcanza con min/max de la propia serie que
+// se está graficando, sin necesidad de cruzar con SERIE (el histórico de rutas).
+function poblarSelectsRango(serieOrdenada, idDesde, idHasta) {
+  const desde = document.getElementById(idDesde);
+  const hasta = document.getElementById(idHasta);
+  if (!desde || !hasta || !serieOrdenada.length) return;
+
+  const min = serieOrdenada[0], max = serieOrdenada[serieOrdenada.length - 1];
+  const opciones = [];
+  for (let a = min.anio; a <= max.anio; a++) {
+    const mIni = (a === min.anio) ? min.mes : 1;
+    const mFin = (a === max.anio) ? max.mes : 12;
+    for (let m = mIni; m <= mFin; m++) opciones.push(`${a}-${String(m).padStart(2, '0')}`);
+  }
+  const html = opciones.map(v => {
+    const [a, m] = v.split('-');
+    return `<option value="${v}">${MESES[parseInt(m, 10) - 1]} ${a}</option>`;
+  }).join('');
+
+  // Conservar la selección previa si sigue existiendo entre las opciones nuevas (por
+  // ejemplo, tras subir un archivo que agrega meses al final pero no cambia el principio).
+  const prevDesde = desde.value, prevHasta = hasta.value;
+  desde.innerHTML = html;
+  hasta.innerHTML = html;
+  desde.value = opciones.includes(prevDesde) ? prevDesde : opciones[0];
+  hasta.value = opciones.includes(prevHasta) ? prevHasta : opciones[opciones.length - 1];
+}
+
+function aplicarRangoGenerico(idDesde, idHasta, idChart) {
+  const desde = document.getElementById(idDesde).value;  // "AAAA-MM"
+  const hasta = document.getElementById(idHasta).value;
+  if (!desde || !hasta) return;
+
+  let [a0, m0] = desde.split('-').map(Number);
+  let [a1, m1] = hasta.split('-').map(Number);
+  if (a1 < a0 || (a1 === a0 && m1 < m0)) {
+    [a0, m0, a1, m1] = [a1, m1, a0, m0];
+    document.getElementById(idDesde).value = `${a0}-${String(m0).padStart(2, '0')}`;
+    document.getElementById(idHasta).value = `${a1}-${String(m1).padStart(2, '0')}`;
+  }
+
+  const x0 = isoDate(a0, m0);
+  const x1 = (m1 === 12) ? isoDate(a1 + 1, 1) : isoDate(a1, m1 + 1);
+  Plotly.relayout(idChart, { 'xaxis.range': [x0, x1] });
+}
+
+function limpiarRangoGenerico(idDesde, idHasta, idChart) {
+  const desde = document.getElementById(idDesde);
+  const hasta = document.getElementById(idHasta);
+  if (desde && desde.options.length) desde.value = desde.options[0].value;
+  if (hasta && hasta.options.length) hasta.value = hasta.options[hasta.options.length - 1].value;
+  Plotly.relayout(idChart, { 'xaxis.autorange': true });
+}
+
+function aplicarRangoFX() { aplicarRangoGenerico('rango-fx-desde', 'rango-fx-hasta', 'chart-fx'); }
+function limpiarRangoFX() { limpiarRangoGenerico('rango-fx-desde', 'rango-fx-hasta', 'chart-fx'); }
+function aplicarRangoSalarios() { aplicarRangoGenerico('rango-sal-desde', 'rango-sal-hasta', 'chart-salarios'); }
+function limpiarRangoSalarios() { limpiarRangoGenerico('rango-sal-desde', 'rango-sal-hasta', 'chart-salarios'); }
+function aplicarRangoDolarBlue() { aplicarRangoGenerico('rango-blue-desde', 'rango-blue-hasta', 'chart-blue'); }
+function limpiarRangoDolarBlue() { limpiarRangoGenerico('rango-blue-desde', 'rango-blue-hasta', 'chart-blue'); }
+
+// ---------------------------------------------------------------- dólar blue real
+// dolar_blue(t) es nominal (se sube tal cual el CSV diario, promediado a mensual). Acá se
+// deflacta por el IPC Nivel General (categoria='ipc', nombre='Nivel General' — no el
+// selector de división de la sección de salarios, que es para otra cosa: acá interesa el
+// poder de compra general, no una canasta puntual) con base en el PRIMER mes del propio
+// archivo de dólar blue, no en el primer mes en que blue e IPC se superponen — si el IPC
+// no cubre ese primer mes, se cae al primer mes que sí lo cubre y se avisa en el gráfico,
+// pero la intención por defecto es "el primer dato que subiste".
+function calcularDolarBlueReal() {
+  if (!DOLARBLUE.length) return { serie: null, motivo: 'sin_blue' };
+  const nominal = [...DOLARBLUE].sort((a, b) => mesIndex(a.anio, a.mes) - mesIndex(b.anio, b.mes));
+
+  const ipcNivelGeneral = IPC.filter(i => i.nombre === 'Nivel General');
+  if (!ipcNivelGeneral.length) return { serie: null, motivo: 'sin_ipc' };
+  const ipcPorPeriodo = new Map(ipcNivelGeneral.map(i => [`${i.anio}-${i.mes}`, i.valor]));
+
+  // Base: el primer mes del CSV de blue que también tenga IPC. Casi siempre coincide con
+  // el primer mes del archivo; si no, se informa el corrimiento en vez de fallar en
+  // silencio.
+  let baseIdx = nominal.findIndex(s => ipcPorPeriodo.has(`${s.anio}-${s.mes}`));
+  if (baseIdx === -1) return { serie: null, motivo: 'sin_superposicion' };
+
+  const base = nominal[baseIdx];
+  const ipcBase = ipcPorPeriodo.get(`${base.anio}-${base.mes}`);
+
+  const serie = [];
+  for (const s of nominal) {
+    const ipc = ipcPorPeriodo.get(`${s.anio}-${s.mes}`);
+    if (ipc == null) continue;  // ese mes no tiene IPC: no se puede deflactar, se saltea
+    serie.push({ anio: s.anio, mes: s.mes, nominal: s.valor, valor: s.valor * (ipcBase / ipc) });
+  }
+  const corrido = baseIdx > 0;
+  return { serie, motivo: corrido ? 'base_corrida' : 'ok', baseEtiqueta: etiqueta(base.anio, base.mes) };
+}
+
+function dibujarGraficoDolarBlue() {
+  const cont = document.getElementById('chart-blue');
+  if (!cont) return;
+  const { serie, motivo, baseEtiqueta } = calcularDolarBlueReal();
+
+  if (!serie || !serie.length) {
+    Plotly.purge('chart-blue');
+    const msgs = {
+      sin_blue: 'Sin datos de dólar blue cargados.',
+      sin_ipc: 'Cargá el IPC (división "Nivel General") en la sección de Índice salarial '
+             + 'de más abajo para poder calcular el dólar blue real.',
+      sin_superposicion: 'El dólar blue y el IPC cargados no comparten ningún mes en común.',
+    };
+    cont.innerHTML = `<div class="empty">${msgs[motivo] || 'Sin datos suficientes.'}</div>`;
+    return;
+  }
+  cont.innerHTML = '';
+
+  const x = serie.map(s => isoDate(s.anio, s.mes));
+  const y = serie.map(s => s.valor);
+  const variacion = serie.map((s, i) => i === 0 ? null : (s.valor / serie[i - 1].valor - 1) * 100);
+  const hoverTexts = serie.map((s, i) => {
+    const lineas = [`<b>${etiqueta(s.anio, s.mes)}</b>`, `Real: ${nf(s.valor, 2)}`,
+                    `Nominal: ${nf(s.nominal, 2)}`];
+    if (variacion[i] != null) {
+      lineas.push(`Variación mensual: ${variacion[i] >= 0 ? '+' : ''}${nf(variacion[i], 1)}%`);
+    }
+    return lineas.join('<br>');
+  });
+
+  Plotly.newPlot('chart-blue', [
+    { x, y, name: 'Dólar blue real', type: 'scatter', mode: 'lines',
+      line: { color: '#e0a34c', width: 2 }, hoverinfo: 'text', hovertext: hoverTexts },
+  ], {
+    paper_bgcolor: '#10162e', plot_bgcolor: '#10162e',
+    font: { color: '#c8cfe6', size: 11 },
+    margin: { l: 56, r: 18, t: 12, b: 60 },
+    xaxis: {
+      gridcolor: '#1e2748', type: 'date',
+      showspikes: true, spikemode: 'across', spikesnap: 'cursor',
+      spikethickness: 1, spikedash: 'dot', spikecolor: '#8b93b8',
+      rangeslider: { visible: true, bgcolor: '#0b1020', bordercolor: '#2a3358', thickness: 0.09 },
+    },
+    yaxis: { gridcolor: '#1e2748', title: `Dólar blue real (pesos de ${baseEtiqueta})` },
+    hovermode: 'x',
+    hoverlabel: { bgcolor: '#161d3d', bordercolor: '#3a4470', font: { color: '#e4e8f5', size: 12 } },
+  }, { displayModeBar: false, responsive: true });
+
+  const nota = document.getElementById('elasticidad-blue-msg');
+  if (motivo === 'base_corrida' && nota && !nota.textContent) {
+    // Solo se pisa el mensaje si está vacío, para no taparle el resultado a
+    // estimarElasticidadDolarBlue() si ya corrió.
+    nota.style.color = '#e0c34c';
+    nota.textContent = `El IPC no cubre el primer mes del archivo de blue; se usó ${baseEtiqueta} ` +
+      'como base (primer mes en que ambas series se superponen).';
+  }
+
+  poblarSelectsRango(serie, 'rango-blue-desde', 'rango-blue-hasta');
+}
+
+function dibujarTablaDolarBlue() {
+  const tb = document.getElementById('tbody-blue');
+  const { serie } = calcularDolarBlueReal();
+  if (!serie || !serie.length) {
+    tb.innerHTML = '<tr><td colspan="3" class="empty">Sin datos de dólar blue cargados.</td></tr>';
+    return;
+  }
+  tb.innerHTML = serie.map((s, i) => {
+    const variacion = i > 0 ? (s.valor / serie[i - 1].valor - 1) * 100 : null;
+    return `<tr>
+      <td>${etiqueta(s.anio, s.mes)}</td>
+      <td class="num">${nf(s.valor, 2)}</td>
+      <td class="num" style="color:${variacion == null ? 'inherit' : (variacion >= 0 ? '#8fe3a2' : '#ff9ab0')}">${
+        variacion == null ? '—' : (variacion >= 0 ? '+' : '') + nf(variacion, 1) + '%'}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function subirDolarBlue() {
+  const input = document.getElementById('fblue-file');
+  const msg = document.getElementById('fblue-msg');
+  msg.className = 'err';
+  if (!input.files || !input.files[0]) { msg.textContent = 'Elegí un archivo primero.'; return; }
+  msg.textContent = 'Subiendo…';
+  try {
+    const fd = new FormData();
+    fd.append('file', input.files[0]);
+    fd.append('categoria', 'dolar_blue');
+    const r = await fetch('/api/proyeccion/indices/upload', { method: 'POST', body: fd });
+    const d = await r.json();
+    if (!r.ok || d.error) { msg.textContent = d.error || `Error ${r.status}`; return; }
+    msg.className = 'ok';
+    msg.textContent = `Listo: ${d.insertados} mes(es) nuevo(s), ${d.actualizados} actualizado(s).` +
+      ((d.warnings && d.warnings.length) ? ' Avisos: ' + d.warnings.slice(0, 5).join(' · ') : '');
+    input.value = '';
+
+    const r2 = await fetch('/api/proyeccion/indices?categoria=dolar_blue');
+    const d2 = await r2.json();
+    if (!d2.error) DOLARBLUE = (d2.indices || []).filter(i => i.nombre === 'nominal');
+
+    document.getElementById('elasticidad-blue-msg').textContent = '';  // limpiar nota de base corrida vieja
+    dibujarTablaDolarBlue();
+    dibujarGraficoDolarBlue();
+  } catch (e) {
+    msg.textContent = 'Error de red: ' + e.message;
+  }
+}
+
+function estimarElasticidadDolarBlue() {
+  const msg = document.getElementById('elasticidad-blue-msg');
+  const { serie, motivo } = calcularDolarBlueReal();
+  if (!serie) {
+    msg.style.color = '#ff9a9a';
+    msg.textContent = motivo === 'sin_ipc'
+      ? 'Cargá el IPC (Nivel General) más abajo antes de estimar: sin eso no se puede '
+        + 'calcular el dólar blue real.'
+      : 'Cargá el dólar blue antes de estimar.';
+    return;
+  }
+  if (serie.length < 24) {
+    msg.style.color = '#ff9a9a';
+    msg.textContent = 'Hacen falta al menos 24 meses de dólar blue real (blue ∩ IPC) para ' +
+      'poder separar la tendencia, la estacionalidad y el efecto cambiario con confianza.';
+    return;
+  }
+
+  const bluePorPeriodo = new Map(serie.map(s => [`${s.anio}-${s.mes}`, s.valor]));
+  const datos = SERIE
+    .filter(s => !s.excluido && s.internacional_m3 > 0 && bluePorPeriodo.has(`${s.anio}-${s.mes}`))
+    .map(s => ({ ...s, fx: bluePorPeriodo.get(`${s.anio}-${s.mes}`) }));
+
+  if (datos.length < 24) {
+    msg.style.color = '#ff9a9a';
+    msg.textContent = `Solo hay ${datos.length} meses donde el histórico y el dólar blue ` +
+      'real se superponen (hacen falta al menos 24). Cargá más historia de alguno de los dos.';
+    return;
+  }
+
+  const t0 = mesIndex(datos[0].anio, datos[0].mes);
+  const X = [], y = [];
+  for (const d of datos) {
+    const t = mesIndex(d.anio, d.mes) - t0;
+    const fila = [1, t, Math.log(d.fx)];
+    for (let m = 2; m <= 12; m++) fila.push(d.mes === m ? 1 : 0);
+    X.push(fila);
+    y.push(Math.log(d.internacional_m3));
+  }
+  const k = X[0].length;
+  const XtX = [], Xty = [];
+  for (let a = 0; a < k; a++) {
+    const fila = [];
+    for (let b = 0; b < k; b++) fila.push(X.reduce((acc, r) => acc + r[a] * r[b], 0));
+    XtX.push(fila);
+    Xty.push(X.reduce((acc, r, i) => acc + r[a] * y[i], 0));
+  }
+  const beta = resolverSistema(XtX, Xty);
+  if (!beta) {
+    msg.style.color = '#ff9a9a';
+    msg.textContent = 'No se pudo separar la tendencia del efecto cambiario (el sistema queda ' +
+      'indeterminado): el dólar blue real se movió como una recta muy suave en todo el período.';
+    return;
+  }
+  const elasticidad = beta[2];
+  const crecimientoAnual = Math.exp(beta[1] * 12) - 1;
+
+  const ts = datos.map(d => mesIndex(d.anio, d.mes) - t0);
+  const logs = datos.map(d => Math.log(d.fx));
+  const mt = ts.reduce((a, b) => a + b, 0) / ts.length;
+  const ml = logs.reduce((a, b) => a + b, 0) / logs.length;
+  const cov = ts.reduce((acc, t, i) => acc + (t - mt) * (logs[i] - ml), 0) / ts.length;
+  const vt = ts.reduce((acc, t) => acc + (t - mt) ** 2, 0) / ts.length;
+  const vl = logs.reduce((acc, l) => acc + (l - ml) ** 2, 0) / logs.length;
+  const correlacionConTiempo = cov / Math.sqrt(vt * vl);
+
+  msg.style.color = Math.abs(correlacionConTiempo) > 0.9 ? '#ffb347' : '#9aa4c7';
+  msg.innerHTML = `Sobre ${datos.length} meses: elasticidad del tráfico internacional al ` +
+    `dólar blue real = <b>${elasticidad.toFixed(2)}</b> (cada 1% de suba en el dólar blue ` +
+    `real se asocia con ${elasticidad >= 0 ? 'un' : 'una caída del'} ${Math.abs(elasticidad).toFixed(2)}% ` +
+    `${elasticidad >= 0 ? 'de aumento' : ''} en el tráfico). Tendencia de fondo (ya neta del ` +
+    `efecto cambiario): <b>${(crecimientoAnual * 100).toFixed(1)}%</b> anual.` +
+    `<br>Correlación del dólar blue real con el tiempo: <b>${correlacionConTiempo.toFixed(2)}</b>` +
+    (Math.abs(correlacionConTiempo) > 0.9
+      ? ' — alta: tratá este resultado como poco confiable, la variación se parece ' +
+        'demasiado a una simple tendencia.'
+      : ' — baja: la variación del dólar blue real es en buena medida independiente del ' +
+        'calendario, así que este resultado es más confiable que uno con una serie nominal.') +
+    ` Este número es informativo — no pisa el campo "Crecimiento anual internacional" solo, ` +
+    `por el mismo motivo que el ITCRM de arriba.`;
+}
+
+function serieSalarialElegida() {
+  const nombre = document.getElementById('fsal-serie').value;
+  return SALARIOS.filter(s => s.nombre === nombre).sort((a, b) => (a.anio - b.anio) || (a.mes - b.mes));
+}
+
+function dibujarTablaSalarios() {
+  const tb = document.getElementById('tbody-salarios');
+  const serie = serieSalarialElegida();
+  if (!serie.length) {
+    tb.innerHTML = '<tr><td colspan="3" class="empty">Sin datos de salarios cargados para esta sub-serie.</td></tr>';
+    return;
+  }
+  tb.innerHTML = serie.map((f, i) => {
+    const prev = i > 0 ? serie[i - 1] : null;
+    const variacion = prev ? (f.valor / prev.valor - 1) * 100 : null;
+    return `<tr>
+      <td>${etiqueta(f.anio, f.mes)}</td>
+      <td class="num">${nf(f.valor, 2)}</td>
+      <td class="num" style="color:${variacion == null ? 'inherit' : (variacion >= 0 ? '#8fe3a2' : '#ff9ab0')}">${
+        variacion == null ? '—' : (variacion >= 0 ? '+' : '') + nf(variacion, 1) + '%'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// Mismo álgebra que estimarElasticidadFX, apuntando a CABOTAJE en vez de internacional: el
+// salario es lo que mueve el viaje interno, el tipo de cambio pega más sobre el internacional.
+function estimarElasticidadSalarios() {
+  const msg = document.getElementById('elasticidad-salarios-msg');
+  const serie = serieSalarialElegida();
+  if (serie.length < 24) {
+    msg.style.color = '#ff9a9a';
+    msg.textContent = 'Hacen falta al menos 24 meses de esa sub-serie para poder separar la ' +
+      'tendencia, la estacionalidad y el efecto salarial con confianza.';
+    return;
+  }
+
+  const salPorPeriodo = new Map(serie.map(s => [`${s.anio}-${s.mes}`, s.valor]));
+  const datos = SERIE
+    .filter(s => !s.excluido && s.cabotaje_m3 > 0 && salPorPeriodo.has(`${s.anio}-${s.mes}`))
+    .map(s => ({ ...s, sal: salPorPeriodo.get(`${s.anio}-${s.mes}`) }));
+
+  if (datos.length < 24) {
+    msg.style.color = '#ff9a9a';
+    msg.textContent = `Solo hay ${datos.length} meses donde el histórico y el salario se ` +
+      'superponen (hacen falta al menos 24). Cargá más historia de alguno de los dos.';
+    return;
+  }
+
+  const t0 = mesIndex(datos[0].anio, datos[0].mes);
+  const X = [], y = [];
+  for (const d of datos) {
+    const t = mesIndex(d.anio, d.mes) - t0;
+    const fila = [1, t, Math.log(d.sal)];
+    for (let m = 2; m <= 12; m++) fila.push(d.mes === m ? 1 : 0);
+    X.push(fila);
+    y.push(Math.log(d.cabotaje_m3));
+  }
+  const k = X[0].length;
+  const XtX = [], Xty = [];
+  for (let a = 0; a < k; a++) {
+    const fila = [];
+    for (let b = 0; b < k; b++) fila.push(X.reduce((acc, r) => acc + r[a] * r[b], 0));
+    XtX.push(fila);
+    Xty.push(X.reduce((acc, r, i) => acc + r[a] * y[i], 0));
+  }
+  const beta = resolverSistema(XtX, Xty);
+  if (!beta) {
+    msg.style.color = '#ff9a9a';
+    msg.textContent = 'No se pudo separar la tendencia del efecto salarial (el sistema queda ' +
+      'indeterminado) — con un índice nominal en un país con inflación acumulada, es un ' +
+      'riesgo esperable: la serie se parece demasiado a una recta y queda colineal con el ' +
+      'tiempo. Si conseguís el IPC para pasar esto a salario real, va a identificar mejor.';
+    return;
+  }
+  const elasticidad = beta[2];
+  const crecimientoAnual = Math.exp(beta[1] * 12) - 1;
+
+  // Diagnóstico honesto: qué tan colineal está el salario elegido con el tiempo. Con un
+  // valor así de alto, el coeficiente puede ser matemáticamente válido pero estadísticamente
+  // poco confiable (mismo problema conceptual que el "crawling peg" del tipo de cambio).
+  const ts = datos.map((d, i) => mesIndex(d.anio, d.mes) - t0);
+  const logs = datos.map(d => Math.log(d.sal));
+  const mt = ts.reduce((a, b) => a + b, 0) / ts.length;
+  const ml = logs.reduce((a, b) => a + b, 0) / logs.length;
+  const cov = ts.reduce((acc, t, i) => acc + (t - mt) * (logs[i] - ml), 0) / ts.length;
+  const vt = ts.reduce((acc, t) => acc + (t - mt) ** 2, 0) / ts.length;
+  const vl = logs.reduce((acc, l) => acc + (l - ml) ** 2, 0) / logs.length;
+  const correlacionConTiempo = cov / Math.sqrt(vt * vl);
+
+  msg.style.color = Math.abs(correlacionConTiempo) > 0.9 ? '#ffb347' : '#9aa4c7';
+  msg.innerHTML = `Sobre ${datos.length} meses: elasticidad del cabotaje al salario ` +
+    `(${document.getElementById('fsal-serie').selectedOptions[0].text}) = ` +
+    `<b>${elasticidad.toFixed(2)}</b> (cada 1% de suba del salario se asocia con ` +
+    `${elasticidad >= 0 ? 'un aumento' : 'una caída'} de ${Math.abs(elasticidad).toFixed(2)}% ` +
+    `en el tráfico de cabotaje). Tendencia de fondo: <b>${(crecimientoAnual * 100).toFixed(1)}%</b> anual.` +
+    `<br>Correlación del salario elegido con el tiempo: <b>${correlacionConTiempo.toFixed(2)}</b>` +
+    (Math.abs(correlacionConTiempo) > 0.9
+      ? ' — alta: el índice es nominal y se mueve casi como una recta, así que tratá este ' +
+        'número como orientativo, no como algo para pisar los supuestos a ciegas.'
+      : '.') +
+    ` Este número es informativo — no pisa el campo "Crecimiento anual cabotaje" solo, ` +
+    `porque para proyectarlo hacia adelante hace falta además un supuesto de hacia dónde va ` +
+    `el salario real.`;
+}
+
+async function guardarConfig() {
+  const msg = document.getElementById('cfg-msg');
+  msg.className = 'err';
+  msg.textContent = '';
+  try {
+    const r = await fetch('/api/proyeccion/config', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        escenario: 'Base',
+        crecimiento_anual_cabotaje: (parseFloat(document.getElementById('f-gcab').value) || 0) / 100,
+        crecimiento_anual_intl: (parseFloat(document.getElementById('f-gintl').value) || 0) / 100,
+        horizonte_meses: document.getElementById('f-horizonte').value,
+        anios_estacionalidad: document.getElementById('f-anios').value,
+      }),
+    });
+    const d = await r.json();
+    if (!r.ok || d.error) { msg.textContent = d.error || `Error ${r.status}`; return; }
+    msg.className = 'ok';
+    msg.textContent = 'Supuestos guardados.';
+    // Sin esto, si el campo no llegó a disparar su evento 'change' antes del click (pasa
+    // según cómo se edite el número), el gráfico se queda mostrando el horizonte anterior
+    // aunque el campo ya diga el valor nuevo y el servidor ya lo haya guardado.
+    recalcular();
+  } catch (e) {
+    msg.textContent = 'Error de red: ' + e.message;
+  }
+}
+
+// Previsualizador: al completar origen/destino/pax muestra qué avión asignaría el modelo
+let previewTimer = null;
+async function actualizarPreview() {
+  const o = document.getElementById('f-origin').value.trim();
+  const d = document.getElementById('f-dest').value.trim();
+  const p = document.getElementById('f-pax').value;
+  const av = document.getElementById('f-avion').value;
+  const el = document.getElementById('preview');
+  if (!o || !d) { el.textContent = ''; return; }
+  try {
+    const q = new URLSearchParams({ origin: o, dest: d, pax_por_vuelo: p || '' });
+    if (av) q.set('avion', av);
+    const r = await fetch('/api/estimar_ruta?' + q.toString());
+    const j = await r.json();
+    if (j.error) { el.textContent = j.error; return; }
+    const i = j.info;
+    const vuelos = parseFloat(document.getElementById('f-vuelos').value) || 0;
+    const mensual = i.consumo_total_m3 * vuelos * j.factor_uplift;
+    el.innerHTML = `Avión asignado: <b>${i.avion}</b> (${i.asientos} asientos) · ` +
+      `${nf(i.distancia_km)} km · <b>${nf(i.consumo_total_m3, 2)} m³/vuelo</b> · ` +
+      `factor de carga en Argentina ${j.factor_uplift} (${j.tipo}) → ` +
+      `<b>${nf(mensual)} m³/mes</b> · <i>${i.fuente}</i>`;
+  } catch (e) {
+    el.textContent = '';
+  }
+}
+
+['f-origin', 'f-dest', 'f-pax', 'f-vuelos', 'f-avion'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(actualizarPreview, 350);
+  });
+});
+
+['f-horizonte', 'f-gcab', 'f-gintl', 'f-anios', 'f-excluir-covid'].forEach(id => {
+  document.getElementById(id).addEventListener('change', recalcular);
+});
+
+cargarTodo();
+</script>
+</body>
+</html>
